@@ -1,0 +1,99 @@
+stany:
+szuka_spotkania
+zapisany_na_spotkanie
+na_spotkaniu
+czeka_po_spotkaniu
+
+organizuje_spotkanie
+zalatwia_zgode_na_spotkanie
+gromadzi_uczestnikow
+zalatwia_zasob
+prowadzi_spotkanie
+
+iloœæProcesów
+iloœæDVD
+iloœæKsi¹¿ek
+
+//globalne (wspoldzielone) zmienne
+zajêteDVD[iloœæDVD] //np. [-1, -1, 6, -1] to trzecie DVD zajête przez proces 6, a reszta wolna
+zajêteKsi¹¿ki[iloœæKsi¹¿ek]
+organizatorzy[iloœæProcesów] //binarna - ka¿dy zaznacza 1 pod swoim id jeœli zbiera chêtnych na spotkanie
+
+
+start_procesu() {
+    rodzic = obliczRodzica
+    dzieci [] = obliczDzieci
+    kontakty [] = obliczKontaktyBezpoœrednie
+    akceptorzy [] = losujAkceptorów
+    inicjalizujTabliceZasobów(zajêteDVD, zajêteKsi¹¿ki) //ustaw na -1
+    Bcast(akceptorzy) //root wysy³a swoje wylosowane do innych
+    stan = szuka_spotkania
+}
+
+##################################################################
+
+struct Message{
+	char data; // jakies tam dane
+	int process_id;
+	int lamport_clock;
+}
+int lamport_clock = 0;
+state 
+int[] queued_requests;
+void send(Data data, int receiver_id){
+	lamport_clock++;
+	message = new Message(data, process_id, lamport_clock);
+	MPI_SEND(message, receiver_id);
+}
+
+char* receive(){
+	MPI_RECV(ANY, message);
+	lamport_clock = MAX(message.lamport_clock, lamport_clock) + 1;
+	return message.data
+}
+
+void multicast(Data data, int[] receiver_ids){
+	lamport_clock++;
+	message = new Message(data, process_id, lamport_clock);
+	for(int i=0; i<receiver_ids.size; i++){
+		MPI_SEND(message, receiver_ids[i]);
+	}
+}
+
+enter_critical_section(Data data, int[] receiver_ids){
+	int reply_count = 0;
+	state = WANTED
+	multicast(data, receiver_ids)
+	while(state == WANTED){
+		MPI_RECV(message,ANY)
+		reply_count++;
+		if(reply_count = receiver_ids.size){
+			stan = HELD // wchodzi do sekcji
+		}
+	}
+}
+
+exit_critical_section(){
+	state = RELEASED
+	multicast(data, queued_requests) // gdy opuszczamy sekcje wysylamy zgody innym ktorzy sie ubiegali o dostep
+	clear(queued_requests) // czyszczenie kolejki
+}
+
+critical_section_request_listener(){ //async
+	while(true){
+		MPI_RECV(message,ANY)
+		if(state == HELD || (state == WANTED && lamport_clock < message.lamport_clock)){ // albo mamy sekcje albo chcemy dostep i mamy mniejszy zegar czyli bylismy szybsi
+			queued_requests.add(message.process_id)		
+		}
+		else{
+			send(data, message.process_id);
+		}
+	}
+}
+
+
+main(){
+	stan = szuka_spotkania;
+	
+
+}
