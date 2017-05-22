@@ -1,5 +1,5 @@
 stany:
-szuka_spotkania
+sproboj_sie_zapisac
 zapisany_na_spotkanie
 na_spotkaniu
 czeka_po_spotkaniu
@@ -27,7 +27,7 @@ start_procesu() {
     akceptorzy [] = losujAkceptorów
     inicjalizujTabliceZasobów(zajêteDVD, zajêteKsi¹¿ki) //ustaw na -1
     Bcast(akceptorzy) //root wysy³a swoje wylosowane do innych
-    stan = szuka_spotkania
+    stan = sproboj_sie_zapisac
 }
 
 ##################################################################
@@ -60,10 +60,10 @@ void multicast(Data data, int[] receiver_ids){
 	}
 }
 
-enter_critical_section(Data data, int[] receiver_ids){
+enter_critical_section(char* mutex_name, int[] receiver_ids){
 	int reply_count = 0;
 	state = WANTED
-	multicast(data, receiver_ids)
+	multicast(null, receiver_ids)
 	while(state == WANTED){
 		MPI_RECV(message,ANY)
 		reply_count++;
@@ -75,7 +75,7 @@ enter_critical_section(Data data, int[] receiver_ids){
 
 exit_critical_section(){
 	state = RELEASED
-	multicast(data, queued_requests) // gdy opuszczamy sekcje wysylamy zgody innym ktorzy sie ubiegali o dostep
+	multicast(null, queued_requests) // gdy opuszczamy sekcje wysylamy zgody innym ktorzy sie ubiegali o dostep
 	clear(queued_requests) // czyszczenie kolejki
 }
 
@@ -86,14 +86,159 @@ critical_section_request_listener(){ //async
 			queued_requests.add(message.process_id)		
 		}
 		else{
-			send(data, message.process_id);
+			send(null, message.process_id);
 		}
 	}
 }
 
 
 main(){
-	stan = szuka_spotkania;
+	nasluchiwanie_zgloszen() // async
 	
+	if(stan == czeka_po_spotkaniu) {
+		sleep(random)
+    }
+	stan = sproboj_sie_zapisac;
+	if(zapisz_sie_na_spotkanie()) { //wewn¹trz grupy
+		czekaj_na_spotkanie()
+		wez_udzial()
+    }
+	else{
+		stan = organizuje_spotkanie
+		zorganizuj_spotkanie()
+		
+	}
 
+}
+int id_organizatora
+zapisz_sie_na_spotkanie() {
+	id_organizatora = -1;
+
+	for dla kazdego kontaktu{
+		
+		enter_critical_section(MUTEX_KONTAKTU, kontakt) // todo
+		send(ZGLOSZENIE_NA_SPOTKANIE, kontakt) //rodzic, dzieci, grupa
+		odpowiedz = receive(DECYZJA_O_ZGLOSZENIU, kontakt)
+		exit_critical_section()
+		
+		if(odpowiedz == ZAPISANY){
+			id_organizatora = kontakt
+			return true
+		}
+	}
+	return false
+}
+
+czekaj_na_spotkanie() {
+    receive(ROZPOCZECIE_SPOTKANIA, id_organizatora) //nas³uchiwanie   
+}
+
+wez_udzial() {
+    stan = na_spotkaniu
+    w¹tek1:
+        while(stan == na_spotkaniu) {
+            palKucyki()
+        }
+    w¹tek2:
+        receive(ZAKONCZENIE_SPOTKANIA, id_organizatora) //oczekujemy na zakonczenie spotkania
+        stan = czeka_po_spotkaniu
+}
+
+// ORGANIZACJA SPOTKANIA
+
+zorganizuj_spotkanie(){
+	stan = zalatwia_zgode_na_spotkanie
+	if(zalatw_zgode_na_spotkanie()){
+		stan = gromadzi_uczestnikow
+		zbierz_chêtnych()
+		stan = zalatwia_zasob
+		zalatw_zasob()
+		stan = prowadzi_spotkanie
+		poprowadz_spotkanie()
+		stan = czeka_po_spotkaniu
+	}
+
+}
+
+zalatw_zgode_na_spotkanie() {
+
+    akceptor_id = losujAkceptora() // losuje z listy akceptoro
+	
+	enter_critical_section(MUTEX_AKCEPTORA, akceptor_id)
+	send(ZAPYTANIE_O_ZGODE_NA_SPOTKANIE, akceptor_id)
+	decyzja = receive(ZAPYTANIE_O_ZGODE_NA_SPOTKANIE, akceptor_id)
+	exit_critical_section()
+	
+	if(decyzja == TAK){
+		limit_uczestnikow = decyzja.ilosc
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+int[] zgloszeni_chetni;
+zbierz_chêtnych() {
+		sleep(limit_czekania_na_uczestnikow)
+}
+
+
+
+
+nasluchiwanie_zgloszen() {
+	while(true){
+		zgloszenie = receive(ZGLOSZENIE_NA_SPOTKANIE, ANY)
+		if(zgloszeni_chetni.size < limit_uczestnikow && stan == gromadzi_uczestnikow){
+			zgloszeni_chetni.add(zgloszenie.process_id)
+			send(DECYZJA_O_ZGLOSZENIU, zgloszenie.process_id) //zgoda
+		}
+		else{
+			send(DECYZJA_O_ZGLOSZENIU, zgloszenie.process_id) //brak zgody
+		}
+	}
+}
+
+
+zalatw_zasob(){
+  boolean mam_zasob = false;
+  while(mam_zasob == false){
+	
+	//DVD
+	enter_critical_section(DVD_MUTEX, wszystkie_procesy)
+	for dla kazdego dvd{
+		if(dvd = -1){
+			dvd = process_id
+			mam_zasob = true
+			break;
+		}
+	}
+	multicast(ID_ZAJETEGO_DVD, wszystkie_procesy) // tutaj troche slabo poniewaz my mozemy opuscic sekcje zanim inni zaktualizuja (multicast) u siebie swoja tablice dvd
+	exit_critical_section()
+	
+	//KSIAZKA
+	if(mam_zasob == false){
+		enter_critical_section(BOOK_MUTEX, wszystkie_procesy)
+		for dla kazdej ksiazki{
+			if(ksiazka = -1){
+				ksiazka = process_id
+				break;
+			}
+		}
+		multicast(ID_ZAJETEj_KSIAZKI, wszystkie_procesy) // tutaj troche slabo poniewaz my mozemy opuscic sekcje zanim inni zaktualizuja (multicast) u siebie swoja tablice ksiazek
+		exit_critical_section()
+	}
+}
+
+
+
+poprowadz_spotkanie() {
+    multicast(START_SPOTKANIA, zgloszeni_chetni)
+    w¹tek1:
+        while(stan == prowadzi_spotkanie) {
+            palKucyki()
+        }
+    w¹tek2:
+        sleep(czasSpotkania)
+            multicast(ZAKONCZENIE_SPOTKANIA, zgloszeni_chetni)
 }
