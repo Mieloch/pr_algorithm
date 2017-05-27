@@ -1,0 +1,21 @@
+//operacje na licznikach zasobów powinny się odbywać w sekcji krytycznej, ponieważ równolegle działa na nich więcej niż jeden wątek
+
+
+
+
+//przekazywanie zasobów
+1   dodawaj odebrane prośby o zasób do kolejki, jednocześnie:
+2   jeśli w kolejce jest zgłoszenie, pobierz je
+3a  jeśli masz wolny zasób przekaż go nadawcy prośby i zmniejsz odpowiednio swój licznik zasobu
+3b  jeśli nie masz:
+        przekaż prośbę dalej
+        odbierz odpowiedzi od kontaktów
+        jeśli nikt nie przysłał zasobu odeślij negatywną odpowiedź na zgłoszenie
+        jeśli otrzymałeś w odpowiedziach co najmniej jeden zasób, prześlij go nadawcy zgłoszenia, resztę zasobów odeślij z powrotem
+4   wróć do 2
+
+
+//zwrot zasobu
+1   odbieraj zgłoszenia zwrotu i dodawaj do kolejki, jednocześnie:
+2   jeśli jest w kolejce zgłoszenie, pobierz je
+3   dodaj zasób do odpowiedniego licznika

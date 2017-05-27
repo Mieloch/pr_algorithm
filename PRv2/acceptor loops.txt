@@ -1,0 +1,54 @@
+//akceptor pamięta licznik procesów na spotkaniach oraz licznik zablokowany jako wstępny limit dla obsługiwanego zgłoszenia organizatora
+//limit jaki akceptor może zaoferować to globalna dopuszczalna ilość pomniejszona o ilość na spotkaniach i zablokowany limit
+//operacje na liczniku procesów na spotkaniach powinny być w sekcji krytycznej
+
+struct acceptor {
+    int number_of_acceptors
+    int global_meeting_limit
+    int locked_limit //tu blokuje wstępny i ostateczny limit
+    quantity_of_processes_on_meetings
+}
+
+
+
+
+//pętla obsługi zgłoszeń od organizatorów
+1   odbieraj zgłoszenia organizatorów i dodawaj do kolejki, jednocześnie:
+2   jeśli w kolejce są zgłoszenia pobierz pierwsze
+3   oblicz ile procesów może jeszcze wziąć udział w spotkaniu (limit globalny - licznik na spotkaniach)
+4   zablokuj jako wstępny limit min(wolna ilość, limit od organizatora)
+5a  jeżeli wstępny limit jest mniejszy niż 2 odeślij brak zgody i wróć do 2
+5b  w przeciwnym wypadku wyślij pytania do akceptorów o ich dopuszczalne limity (załącz limit ze zgłoszenia od organizatora)
+6   odbierz od pozostałych akceptorów ich limity
+7a  jeżeli któryś z akceptorów odesłał brak zgody:
+        odeślij brak zgody
+        wyzeruj zablokowany limit
+        odeślij do akceptorów wiadomość, że spotkanie anulowane
+        
+7b  jeżeli nikt nie odesłał sprzeciwu:
+        jako ostateczny limit wybierz minimum ze wszystkich otrzymanych oraz swojego wstępnego limitu
+        dodaj ostateczny limit do procesów na spotkaniach
+        odeślij ostateczny limit organizatorowi i akceptorom
+        wyzeruj blokadę
+
+8   wróć do 2
+
+
+//pętla odpowiedzi pozostałym akceptorom
+1   odbieraj pytania pozostałch akceptorów i dodawaj do kolejki, jednocześnie:
+2   jeśli w kolejce są zgłoszenia pobierz pierwsze
+3a  jeśli twój wolny limit to mniej niż 2 odeślij brak zgody
+3b  jeśli twój wolny limit to co najmniej 2:
+        zablokuj min(twój limit, limit z pytania)
+        odeślij zablokowany limit
+        odbierz odpowiedź
+        jeżeli zawiera ostateczny limit dodaj go do procesów na spotkaniach, jeżeli anulację przejdź dalej
+        zwolnij blokadę
+4   wróć do 2
+
+
+//pętla zwalniania ilości procesów na spotkaniach
+1   odbieraj wiadomości o zakończonych spotkaniach, dodawaj do kolejki, jednocześnie:
+2   jeżeli jest w kolejce wiadomość, pobierz ją
+3   odejmij od ilości procesów na spotkaniach ilość z wiadomości
+4   wróć do 2

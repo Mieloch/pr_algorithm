@@ -1,0 +1,45 @@
+//przed rozpoczęciem może być sleep random albo wyznaczenie części procesów do organizowania od razu, wtedy program nie rozpocznie się sytuacją,
+//w której wszyscy najpierw czekają, a potem organizują sami
+
+
+
+
+1   zapytaj wszystkich o spotkanie
+2   rozpocznij nasłuchiwanie, otrzymane wiadomości o organizowanych spotkaniach dodawaj do kolejki, jednocześnie przejdź do 3a
+
+3a  jeśli w kolejce jest jakieś spotkanie pobierz je z kolejki spróbuj się na nie zapisać
+        jeśli dostałeś potwierdzenie zapisania na spotkanie zakończ nasłuchiwanie, wyczyść kolejkę i czekaj na rozpoczęcie
+        po rozpoczęciu pal kucyki i czekaj na zakończenie
+        po zakończeniu odczekaj chwilę t1 i wróć do 1 
+
+        jeśli dostałeś odmowę zapisania na spotkanie wróć do 3a 
+
+3b  jeśli po czasie t2 kolejka ze spotkaniami nadal jest pusta przejdź do 4
+
+4   wyślij do wszystkich kontaktów pytanie o zgodę akceptora (podaj limit równy długości siblings[])
+5   odbierz wiadomość o limicie uczestników lub braku zgody na spotkanie
+        jeśli nie otrzymałeś zgody, wróć do 2
+        jeśli otrzymałeś zgodę przejdź do 6
+
+6   odbieraj wiadomości od kandydatów na uczestników i dodawaj je do kolejki, zakończ nasłuchiwanie kiedy zapełnią się miejsca, jednocześnie przejdź do 7a //nasłuchiwanie może być również zakończone w 7b
+7a  jeśli w kolejce jest zgłoszenie pobierz je:
+        jeśli są jeszcze miejsca zapisz kandydata na listę uczestników i odeślij potwierdzenie
+        jeśli nie ma już miejsc odeślij odmowę
+
+7b  jeśli w kolejce nie ma zgłoszeń:
+        sprawdź czy są jeszcze miejsca
+        jeżeli są, odczekaj chwilę t3
+        jeżeli nie ma zakończ nasłuchiwanie i przejdź do 9
+
+8   wróć do 7a
+9   sprawdź czy masz przynajmniej jeden zasób potrzebny do spotkania //rezerwacja w sekcji krytycznej, ponieważ równocześnie działa wątek przekazujący zasoby
+10a jeśli masz przejdź do 13
+10b jeśli nie masz wyślij prośbę o zasób
+11  odbierz wiadomości od kontaktów (pętla odbierania) //każdy kontakt odpowiada, może przysłać zasób lub informację o braku dostępnego zasobu
+12a jeśli otrzymałeś choć jeden zasób przejdź do 13
+12b jeśli nie masz ani jednego zasobu //todo
+13  zarezerwój zasób na potrzeby spotkania
+14  roześlij widomość o rozpoczęciu spotkania
+15  po potkaniu roześlij wiadomość o zakończeniu
+16  odczekaj chwilę t1
+17  wróć do 1

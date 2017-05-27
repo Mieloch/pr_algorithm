@@ -1,0 +1,3 @@
+ - rotacja akceptorów: jak ustalają, jak wstrzymać działanie kiedy się zamieniają
+ - schemat komunikacji: procesy zapamiętują nadawcę kiedy przekazują jego wiadomość dalej - trzeba jeszcze przemyśleć,
+   jak spośród otrzymanych odpowiedzi wybiorą te dotyczące jego pytania (czyli jak powiązać przekazywaną dalej wiadomość i odpowiedź na nią)

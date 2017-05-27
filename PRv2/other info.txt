@@ -1,0 +1,60 @@
+//struktura z grubsza
+struct node {
+    node parent
+    node[] children
+    node[] siblings
+    bool acceptor
+    int dvd
+    int book
+}
+
+//w inicjalizacji programu należy określić:
+ilość akceptorów
+ilość zasobów (DVD i książek)
+dopuszczalną ilość procesów na spotkaniach
+ilość akceptorów
+schemat struktury pseudodrzewiastej
+rozmieszczenie akceptorów i zasobów w strukturze
+czasy oczekiwania (t1, t2, t3)
+
+
+
+//trzy kolejne funkcje to opis mechanizmu komunikacji
+//todo
+send_message() {
+    send_to_parent
+    send_to_siblings
+    send_to_children
+}
+
+respond() {
+    store_sender
+    if(pass_message) {
+        store_receivers
+        wait_for_response_from_all_receivers
+    }
+    respond_to_sender
+}
+
+//zwraca true jeżeli miał do kogo przekazać
+pass_message() {
+    if(received_from_child) {
+        if(not_root) {
+            pass_to_siblings
+            pass_to_parent
+            return true
+        }
+        else {
+            return false
+        }
+    }
+    else if(received_from_sibling or received_from_parent) {
+        if(has_children) {
+            pass_to_children
+            return true
+        }
+        else {
+            return false
+        }
+    }
+}
