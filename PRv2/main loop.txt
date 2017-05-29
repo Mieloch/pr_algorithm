@@ -38,7 +38,7 @@
 11  odbierz wiadomości od kontaktów (pętla odbierania) //każdy kontakt odpowiada, może przysłać zasób lub informację o braku dostępnego zasobu
 12a jeśli otrzymałeś choć jeden zasób przejdź do 13
 12b jeśli nie masz ani jednego zasobu //todo
-13  zarezerwój zasób na potrzeby spotkania
+13  zarezerwuj zasób na potrzeby spotkania
 14  roześlij widomość o rozpoczęciu spotkania
 15  po potkaniu roześlij wiadomość o zakończeniu
 16  odczekaj chwilę t1
