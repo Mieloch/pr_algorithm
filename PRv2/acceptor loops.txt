@@ -18,7 +18,7 @@ struct acceptor {
 3   oblicz ile procesów może jeszcze wziąć udział w spotkaniu (limit globalny - licznik na spotkaniach)
 4   zablokuj jako wstępny limit min(wolna ilość, limit od organizatora)
 5a  jeżeli wstępny limit jest mniejszy niż 2 odeślij brak zgody i wróć do 2
-5b  w przeciwnym wypadku wyślij pytania do akceptorów o ich dopuszczalne limity (załącz limit ze zgłoszenia od organizatora)
+5b  w przeciwnym wypadku wyślij pytania do akceptorów o ich dopuszczalne limity (załącz wstępny zablokowany limit)
 6   odbierz od pozostałych akceptorów ich limity
 7a  jeżeli któryś z akceptorów odesłał brak zgody:
         odeślij brak zgody
