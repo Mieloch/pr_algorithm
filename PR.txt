@@ -1,6 +1,4 @@
-//przed rozpoczęciem może być sleep random albo wyznaczenie części procesów do organizowania od razu, wtedy program nie rozpocznie się sytuacją,
-//w której wszyscy najpierw czekają, a potem organizują sami
-
+﻿
 NA STARTCIE:
 	jesli posiadasz/otrzymales token zasobu a nie jestes rootem to przeslij go w gore
 	jako kierunek do zasobu oznacz rodzica
