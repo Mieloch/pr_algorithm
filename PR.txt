@@ -1,244 +1,61 @@
-stany:
-sproboj_sie_zapisac
-zapisany_na_spotkanie
-na_spotkaniu
-czeka_po_spotkaniu
+//przed rozpoczÄ™ciem moÅ¼e byÄ‡ sleep random albo wyznaczenie czÄ™Å›ci procesÃ³w do organizowania od razu, wtedy program nie rozpocznie siÄ™ sytuacjÄ…,
+//w ktÃ³rej wszyscy najpierw czekajÄ…, a potem organizujÄ… sami
 
-organizuje_spotkanie
-zalatwia_zgode_na_spotkanie
-gromadzi_uczestnikow
-zalatwia_zasob
-prowadzi_spotkanie
+NA STARTCIE:
+	jesli posiadasz/otrzymales token zasobu a nie jestes rootem to przeslij go w gore
+	jako kierunek do zasobu oznacz rodzica
 
-iloœæProcesów
-iloœæDVD
-iloœæKsi¹¿ek
+ORGANIZACJA SPOTKAN:
+	1a zapytaj wszystkich na swoim poziomie czy chca wziac udzial w spotkaniu
+	1b nasluchuj czy ktos nie pyta cie czy chcesz wziac udzial w spotkaniu i odpowiadaj TAK
+	2 odbierz od wszystkich na swoim poziomie informacje czy chca wziac udzial w spotkaniu
+	3 po otrzymaniu wszystkich potwierdzen udzialu ustalany jest organizator - najmniejszy id procesu
 
-//globalne (wspoldzielone) zmienne
-zajêteDVD[iloœæDVD] //np. [-1, -1, 6, -1] to trzecie DVD zajête przez proces 6, a reszta wolna
-zajêteKsi¹¿ki[iloœæKsi¹¿ek]
-organizatorzy[iloœæProcesów] //binarna - ka¿dy zaznacza 1 pod swoim id jeœli zbiera chêtnych na spotkanie
-
-
-start_procesu() {
-    rodzic = obliczRodzica
-    dzieci [] = obliczDzieci
-    kontakty [] = obliczKontaktyBezpoœrednie
-    akceptorzy [] = losujAkceptorów
-    inicjalizujTabliceZasobów(zajêteDVD, zajêteKsi¹¿ki) //ustaw na -1
-    Bcast(akceptorzy) //root wysy³a swoje wylosowane do innych
-    stan = sproboj_sie_zapisac
-}
-
-##################################################################
-
-struct Message{
-	char data; // jakies tam dane
-	int process_id;
-	int lamport_clock;
-}
-int lamport_clock = 0;
-state 
-int[] queued_requests;
-void send(Data data, int receiver_id){
-	lamport_clock++;
-	message = new Message(data, process_id, lamport_clock);
-	MPI_SEND(message, receiver_id);
-}
-
-char* receive(){
-	MPI_RECV(ANY, message);
-	lamport_clock = MAX(message.lamport_clock, lamport_clock) + 1;
-	return message.data
-}
-
-void multicast(Data data, int[] receiver_ids){
-	lamport_clock++;
-	message = new Message(data, process_id, lamport_clock);
-	for(int i=0; i<receiver_ids.size; i++){
-		MPI_SEND(message, receiver_ids[i]);
-	}
-}
-
-enter_critical_section(char* mutex_name, int[] receiver_ids){
-	int reply_count = 0;
-	state = WANTED
-	multicast(null, receiver_ids)
-	while(state == WANTED){
-		MPI_RECV(message,ANY)
-		reply_count++;
-		if(reply_count = receiver_ids.size){
-			stan = HELD // wchodzi do sekcji
-		}
-	}
-}
-
-exit_critical_section(){
-	state = RELEASED
-	multicast(null, queued_requests) // gdy opuszczamy sekcje wysylamy zgody innym ktorzy sie ubiegali o dostep
-	clear(queued_requests) // czyszczenie kolejki
-}
-
-critical_section_request_listener(){ //async
-	while(true){
-		MPI_RECV(message,ANY)
-		if(state == HELD || (state == WANTED && lamport_clock < message.lamport_clock)){ // albo mamy sekcje albo chcemy dostep i mamy mniejszy zegar czyli bylismy szybsi
-			queued_requests.add(message.process_id)		
-		}
-		else{
-			send(null, message.process_id);
-		}
-	}
-}
-
-
-main(){
-	nasluchiwanie_zgloszen() // async
-	
-	if(stan == czeka_po_spotkaniu) {
-		sleep(random)
-    }
-	stan = sproboj_sie_zapisac;
-	if(zapisz_sie_na_spotkanie()) { //wewn¹trz grupy
-		czekaj_na_spotkanie()
-		wez_udzial()
-    }
-	else{
-		stan = organizuje_spotkanie
-		zorganizuj_spotkanie()
+	JESLI jestes organizatorem:
+		4 popros o zgode akceptora 
+		5 odbierasz zgode od akceptora
+		6 sprawdÅº czy masz przynajmniej jeden zasÃ³b potrzebny do spotkania
+		7 JEÅšLI masz zasob to zablokuj go i przejdÅº do 9 JEÅšLI nie masz dodaj sie do swojej kolejki(FIFO) do zasobu oraz wyslij prosbe w kierunku zasobu 
+		8 odbierz wiadomosc z zasobem (ktos w koncu odesle zasob)(zasob przekazywany jest algorytmem Raymonda)
+		9 rozeslij pozostalym uczesnikom wiadomosc o starcie spotkania
+		10 pal kuce
+		11 
+		12 rozeslij pozostalym uczesnikom wiadomosc o koncu spotkania
+		13 odczekaj przed kolejnym spotkaniem
 		
-	}
+	JESLI nie jestes organizatorem:
+		4 to czekasz na wiadomosc o starcie spotkania
+		5a palisz kuce
+		5b nasluchujesz na wiadomosc o koncu spotkania
+		6 odczekaj przed kolejnym spotkaniem
 
-}
-int id_organizatora
-zapisz_sie_na_spotkanie() {
-	id_organizatora = -1;
+	
+OBSLUGA ZASOBU:
+	1 nasluchuj na prosby o zasob
+	2 jesli dostaniesz prosbe to dodaj nadawce do swojej kolejki(FIFO) do zasobu
+	JESLI nie masz zasobu:
+		3 przeslij prosbe dalej w kierunku zasobu
 
-	for dla kazdego kontaktu{
+	JESLI masz zasob:
+		3 sprawdz pierwszy proces w kolejce i wyslij mu zasob(usun z kolejki)
+		4 oznacz nowy kierunek zasobu
 		
-		enter_critical_section(MUTEX_KONTAKTU, kontakt) // todo
-		send(ZGLOSZENIE_NA_SPOTKANIE, kontakt) //rodzic, dzieci, grupa
-		odpowiedz = receive(DECYZJA_O_ZGLOSZENIU, kontakt)
-		exit_critical_section()
+	ROWNOCZESNIE:
+		1 odbieraj zasoby(nasluchuj)
+		2 sprawdz pierwszy proces w kolejce i wyslij mu zasob(usun z kolejki)
+		3 oznacz nowy kierunek zasobu
+	
+	
+AKCEPTOR:
+	1 nasluchuj na prosby o zgode
+	2 jesli dostaniesz prosbe to dodaj nadawce do swojej kolejki(FIFO) do zgody
+	
+	JESLI jestes AKCEPTOREM:
+		3 sprawdz pierwszy proces w kolejce i wyslij mu zgode(usun z kolejki)
+	JESLI nie jestes AKCEPTOREM:
+		3 przeslij prosbe dalej do rodzica
+	
+	ROWNOCZESNIE:
+		1 odbieraj zgody (nasluchuj)
+		2 sprawdz pierwszy proces w kolejce i wyslij mu zgode(usun z kolejki)
 		
-		if(odpowiedz == ZAPISANY){
-			id_organizatora = kontakt
-			return true
-		}
-	}
-	return false
-}
-
-czekaj_na_spotkanie() {
-    receive(ROZPOCZECIE_SPOTKANIA, id_organizatora) //nas³uchiwanie   
-}
-
-wez_udzial() {
-    stan = na_spotkaniu
-    w¹tek1:
-        while(stan == na_spotkaniu) {
-            palKucyki()
-        }
-    w¹tek2:
-        receive(ZAKONCZENIE_SPOTKANIA, id_organizatora) //oczekujemy na zakonczenie spotkania
-        stan = czeka_po_spotkaniu
-}
-
-// ORGANIZACJA SPOTKANIA
-
-zorganizuj_spotkanie(){
-	stan = zalatwia_zgode_na_spotkanie
-	if(zalatw_zgode_na_spotkanie()){
-		stan = gromadzi_uczestnikow
-		zbierz_chêtnych()
-		stan = zalatwia_zasob
-		zalatw_zasob()
-		stan = prowadzi_spotkanie
-		poprowadz_spotkanie()
-		stan = czeka_po_spotkaniu
-	}
-
-}
-
-zalatw_zgode_na_spotkanie() {
-
-    akceptor_id = losujAkceptora() // losuje z listy akceptoro
-	
-	enter_critical_section(MUTEX_AKCEPTORA, akceptor_id)
-	send(ZAPYTANIE_O_ZGODE_NA_SPOTKANIE, akceptor_id)
-	decyzja = receive(ZAPYTANIE_O_ZGODE_NA_SPOTKANIE, akceptor_id)
-	exit_critical_section()
-	
-	if(decyzja == TAK){
-		limit_uczestnikow = decyzja.ilosc
-		return true;
-	}
-	else{
-		return false;
-	}
-}
-
-int[] zgloszeni_chetni;
-zbierz_chêtnych() {
-		sleep(limit_czekania_na_uczestnikow)
-}
-
-
-
-
-nasluchiwanie_zgloszen() {
-	while(true){
-		zgloszenie = receive(ZGLOSZENIE_NA_SPOTKANIE, ANY)
-		if(zgloszeni_chetni.size < limit_uczestnikow && stan == gromadzi_uczestnikow){
-			zgloszeni_chetni.add(zgloszenie.process_id)
-			send(DECYZJA_O_ZGLOSZENIU, zgloszenie.process_id) //zgoda
-		}
-		else{
-			send(DECYZJA_O_ZGLOSZENIU, zgloszenie.process_id) //brak zgody
-		}
-	}
-}
-
-
-zalatw_zasob(){
-  boolean mam_zasob = false;
-  while(mam_zasob == false){
-	
-	//DVD
-	enter_critical_section(DVD_MUTEX, wszystkie_procesy)
-	for dla kazdego dvd{
-		if(dvd = -1){
-			dvd = process_id
-			mam_zasob = true
-			break;
-		}
-	}
-	multicast(ID_ZAJETEGO_DVD, wszystkie_procesy) // tutaj troche slabo poniewaz my mozemy opuscic sekcje zanim inni zaktualizuja (multicast) u siebie swoja tablice dvd
-	exit_critical_section()
-	
-	//KSIAZKA
-	if(mam_zasob == false){
-		enter_critical_section(BOOK_MUTEX, wszystkie_procesy)
-		for dla kazdej ksiazki{
-			if(ksiazka = -1){
-				ksiazka = process_id
-				break;
-			}
-		}
-		multicast(ID_ZAJETEj_KSIAZKI, wszystkie_procesy) // tutaj troche slabo poniewaz my mozemy opuscic sekcje zanim inni zaktualizuja (multicast) u siebie swoja tablice ksiazek
-		exit_critical_section()
-	}
-}
-
-
-
-poprowadz_spotkanie() {
-    multicast(START_SPOTKANIA, zgloszeni_chetni)
-    w¹tek1:
-        while(stan == prowadzi_spotkanie) {
-            palKucyki()
-        }
-    w¹tek2:
-        sleep(czasSpotkania)
-            multicast(ZAKONCZENIE_SPOTKANIA, zgloszeni_chetni)
-}
