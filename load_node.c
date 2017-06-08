@@ -109,7 +109,13 @@ void print_arr(int * arr, char* arr_name){
         printf("%d, ", arr[i]);
     }
 }
-
+void print_node(node* n){
+    print_arr(n->siblings, "siblings");
+    print_arr(n->children, "children");
+    printf("parent = %d ", n->parent);
+    printf("id = %d", n->id);
+    printf("\n\n");
+}
 node* load_node()
 {
     int pid = 4; //mock

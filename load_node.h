@@ -3,6 +3,6 @@
 #include "node_structure.h"
 
 node* load_node();
-void print_arr();
+void print_node(node* n);
 
 #endif
