@@ -1,6 +1,6 @@
 #ifndef RAND_UTILS_H
 #define RAND_UTILS_H
 
-int random_resource_owner(int bound);
+int rand_1_to_bound(int bound);
 
 #endif

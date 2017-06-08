@@ -96,6 +96,9 @@ int* find_children(char* line){
     return column_to_int_arr(buff);
 }
 int arr_len(int* arr){
+    if(arr == NULL){
+        return 0;
+    }
     return sizeof(arr)/sizeof(arr[0]) +1;
 }
 void print_arr(int * arr, char* arr_name){
