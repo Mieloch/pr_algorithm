@@ -113,12 +113,11 @@ void print_node(node* n){
     print_arr(n->siblings, "siblings");
     print_arr(n->children, "children");
     printf("parent = %d ", n->parent);
-    printf("id = %d", n->id);
-    printf("\n\n");
+    printf("id = %d\n", n->id);
+    
 }
-node* load_node()
+node* load_node(int pid)
 {
-    int pid = 4; //mock
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
