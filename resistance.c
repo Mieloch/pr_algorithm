@@ -2,7 +2,7 @@
 #include "rand_utils.h"
 #include "listeners.h"
 #include "msg_tag.h"
-
+#include "fifo.h"
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +12,36 @@
 
 #define BERSERK 666
 
+pthread_mutex_t mutex_resource;
+int test;
+//LISTENERS
+void* resource_transfer_listener(void * state){ // nasluchiwanie na przekazywanie zasobu w gore 
+	printf("rsadasd%d\n", test);
+	int resource_id;
+	MPI_Status status;
+	node_state* my_node_state = (node_state*) state;
+	node* my_node = my_node_state->node_data;
+	while(1){
+    	MPI_Recv(&resource_id, 1, MPI_INT, MPI_ANY_SOURCE, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD, &status); 
+    	printf("Process = %d, recived berserk from process = %d\n", my_node->id, status.MPI_SOURCE);
+		if(my_node->id == 0){
+			my_node_state->resource_owner = 0;
+		}else{
+			printf("Process = %d pass resource to parent = %d\n", my_node->id,my_node->parent);
+			MPI_Send(&resource_id, 1, MPI_INT, my_node->parent, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD);
+			my_node_state->resource_owner = my_node->parent;
+		}
+	}
+	pthread_exit(NULL);
+}
+
+
+
+
+
+
+
+//LISTENERS
 void check_world_size(int size){
 	  // We are assuming at least 2 processes for this task
   if (size < 2) {
@@ -47,6 +77,8 @@ int main(int argc, char** argv) {
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	check_world_size(world_size);
+    pthread_mutex_init(&mutex_resource, NULL);
+	test= 1230;
 
 	node_state* my_node_state= init_node(world_rank);
 
