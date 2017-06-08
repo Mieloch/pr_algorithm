@@ -1,6 +1,5 @@
 #include "load_node.h"
 #include "rand_utils.h"
-#include "listeners.h"
 #include "msg_tag.h"
 #include "fifo.h"
 #include <mpi.h>
@@ -13,13 +12,11 @@
 #define BERSERK 666
 
 pthread_mutex_t mutex_resource;
-int test;
+node_state* my_node_state;
 //LISTENERS
-void* resource_transfer_listener(void * state){ // nasluchiwanie na przekazywanie zasobu w gore 
-	printf("rsadasd%d\n", test);
+void* resource_transfer_listener(void * t){ // nasluchiwanie na przekazywanie zasobu w gore 
 	int resource_id;
 	MPI_Status status;
-	node_state* my_node_state = (node_state*) state;
 	node* my_node = my_node_state->node_data;
 	while(1){
     	MPI_Recv(&resource_id, 1, MPI_INT, MPI_ANY_SOURCE, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD, &status); 
@@ -35,13 +32,6 @@ void* resource_transfer_listener(void * state){ // nasluchiwanie na przekazywani
 	pthread_exit(NULL);
 }
 
-
-
-
-
-
-
-//LISTENERS
 void check_world_size(int size){
 	  // We are assuming at least 2 processes for this task
   if (size < 2) {
@@ -58,19 +48,19 @@ void b_cast_resource_owner(int world_size){
 	}
 } 
 
-int create_transfer_listener(node_state* my_node_state){
+int create_transfer_listener(){
 	 pthread_t t;
-     int rc = pthread_create(&t, NULL, resource_transfer_listener, (void *)my_node_state);
+     int rc = pthread_create(&t, NULL, resource_transfer_listener, (void *)t);
 		if (rc){
 		      printf("ERROR; return code from pthread_create() is %d\n", rc);
 		      exit(-1);
 		}
-
     return t;
 }
 
 
 int main(int argc, char** argv) {
+	//init
 	MPI_Init(NULL, NULL);
 	int world_rank;
 	int world_size;
@@ -78,12 +68,10 @@ int main(int argc, char** argv) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	check_world_size(world_size);
     pthread_mutex_init(&mutex_resource, NULL);
-	test= 1230;
-
-	node_state* my_node_state= init_node(world_rank);
-
+	my_node_state= init_node(world_rank);
 	int transfer_listener_id  = create_transfer_listener(my_node_state);
 	
+
 	if (world_rank == 0) {
 		b_cast_resource_owner(world_size);
 	} else{
