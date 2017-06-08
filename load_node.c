@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "node_structure.h"
+#include "node_state.h"
 
 void get_field(char* line, char* buff, int num){
     int len = strlen(line);
@@ -139,6 +140,7 @@ node* load_node(int pid)
             my_node->siblings = siblings;
             my_node->children_length = arr_len(children);
             my_node->siblings_length = arr_len(siblings);
+
         }
     }
 
@@ -146,4 +148,13 @@ node* load_node(int pid)
     if (line)
         free(line);
     return my_node;
+}
+node_state* init_node(int node_id){
+    node* my_node = load_node(node_id);
+    print_node(my_node);
+    node_state* my_node_state = malloc(sizeof(node_state));
+    my_node_state->node_data=my_node;
+    my_node_state->resource_owner=my_node->parent;
+    sleep(1); //just for print
+    return my_node_state;
 }
