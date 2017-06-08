@@ -4,6 +4,7 @@
 #include <string.h>
 #include "node_structure.h"
 #include "node_state.h"
+#include "utils.h"
 
 void get_field(char* line, char* buff, int num){
     int len = strlen(line);
@@ -95,12 +96,7 @@ int* find_children(char* line){
     get_field(line, buff, 4);
     return column_to_int_arr(buff);
 }
-int arr_len(int* arr){
-    if(arr == NULL){
-        return 0;
-    }
-    return sizeof(arr)/sizeof(arr[0]) +1;
-}
+
 void print_arr(int * arr, char* arr_name){
     printf("%s = ", arr_name);
     if(arr == NULL){

@@ -1,5 +1,5 @@
 #include "load_node.h"
-#include "rand_utils.h"
+#include "utils.h"
 #include "fifo.h"
 #include <mpi.h>
 #include <stdio.h>
@@ -11,6 +11,9 @@
 #define RESOURCE_OWNER_TAG 100
 #define RESOURCE_TRANSFER_TAG 101
 #define ORGANIZE_MEETING 102
+#define START_MEETING 103
+#define END_MEETING 104
+
 
 #define BERSERK 666
 
@@ -109,6 +112,30 @@ void organize_meeting(){
 	void *status;
     pthread_join(transfer_listener_id, &status);
    	printf("Process[%d] has all ack\n",my_node->id);
+   	if(my_node->id < min_from_arr(my_node->siblings)){
+   		printf("Process[%d] is organizator\n", my_node->id);
+   		// todo zasob i zgoda
+   		for(i=0;i<my_node->siblings_length;i++){
+			printf("Process[%d] send start meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
+			MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], START_MEETING, MPI_COMM_WORLD);
+		}
+		//todo byc moze inne procesy musza potwierdzic start i czekamy na ich ack
+		sleep(10); //pal kuce
+		for(i=0;i<my_node->siblings_length;i++){
+			printf("Process[%d] send end meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
+			MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], END_MEETING, MPI_COMM_WORLD);
+		}
+   	}
+   	else{
+   		MPI_Status status;
+   		printf("Process[%d] wait for start meeting\n", my_node->id);
+    	MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, START_MEETING, MPI_COMM_WORLD, &status); 
+   		printf("Process[%d] start meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
+   	 	//pal kuce
+   		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, END_MEETING, MPI_COMM_WORLD, &status);
+   		printf("Process[%d] end meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
+   	}
+   	printf("Process[%d] meeting is over\n", my_node->id);
 
 }
 
@@ -135,12 +162,13 @@ int main(int argc, char** argv) {
 		//printf("Process %d received recource owner = %d from process 0\n", world_rank, owner_pid);
 		if(owner_pid == world_rank){
 			int berserk_id = BERSERK;
-			printf("$$$$$$$$$Process[%d] send berserk to parent[%d]\n", world_rank, my_node_state->node_data->parent);
+			printf("Process[%d] send berserk to parent[%d]\n", world_rank, my_node_state->node_data->parent);
 			MPI_Send(&berserk_id, 1, MPI_INT, my_node_state->node_data->parent, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD);
 		}
 	}
-	sleep(3);
-	sleep(rand_1_to_bound(10));
+
+	sleep(1); //just to pretty printing print
+	sleep(rand_1_to_bound(5)); //just to pretty printing print
 	if(world_rank == 1 || world_rank == 2 || world_rank == 3){
 		organize_meeting();
 	}
