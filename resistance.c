@@ -37,7 +37,7 @@ void* resource_transfer_listener(void * t){ // nasluchiwanie na przekazywanie za
 	}
 	pthread_exit(NULL);
 }
-void* meeting_acc_listener(void* t){
+void* meeting_acc_listener(void* t){ //nasluchiwanie na akceptacje spotkania
 	MPI_Status status;
 	node* my_node = my_node_state -> node_data;
 	int ack_count = 0;
