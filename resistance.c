@@ -75,24 +75,16 @@ void b_cast_resource_owner(int world_size){
 	}
 } 
 
-int create_transfer_listener(){
+int create_listener(void* listener_function){
 	 pthread_t t;
-     int rc = pthread_create(&t, NULL, resource_transfer_listener, (void *)t);
+     int rc = pthread_create(&t, NULL, listener_function, (void *)t);
 		if (rc){
 		      printf("ERROR; return code from pthread_create() is %d\n", rc);
 		      exit(-1);
 		}
     return t;
 }
-int create_meeting_acc_listener(){
-	 pthread_t t;
-     int rc = pthread_create(&t, NULL, meeting_acc_listener, (void *)t);
-		if (rc){
-		      printf("ERROR; return code from pthread_create() is %d\n", rc);
-		      exit(-1);
-		}
-    return t;
-}
+
 void organize_meeting(){
 	node* my_node = my_node_state -> node_data;
 	if(my_node->siblings_length == 0){
@@ -101,7 +93,7 @@ void organize_meeting(){
 	}
 	int i;
 	int number = -1;
-	int transfer_listener_id  = create_meeting_acc_listener();
+	int transfer_listener_id  = create_listener(meeting_acc_listener);
 
 
 	for(i=0;i<my_node->siblings_length;i++){
@@ -151,7 +143,7 @@ int main(int argc, char** argv) {
 	check_world_size(world_size);
     pthread_mutex_init(&mutex_resource, NULL);
 	my_node_state= init_node(world_rank);
-	int transfer_listener_id  = create_transfer_listener();
+	int transfer_listener_id  = create_listener(resource_transfer_listener);
 	
 
 	if (world_rank == 0) {
