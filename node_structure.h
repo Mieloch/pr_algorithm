@@ -1,14 +1,13 @@
 #ifndef NODE_STRUCTURE
 #define NODE_STRUCTURE
 
-typedef struct NODE {
+typedef struct{
+    int id;
     int parent;
     int children[3];
     int siblings[3];
     int children_length;
     int siblings_length;
-    char is_acceptor;
-    char has_dvd;
-} NODE;
+}node;
 
 #endif
