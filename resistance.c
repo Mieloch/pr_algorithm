@@ -98,7 +98,6 @@ void* aassigned_acceptance_listener(void* t){
 			my_node_state->wait_for_acceptance = 0;
 			pthread_cond_signal(&acceptance_receive_cv);
 			pthread_mutex_unlock(&acceptance_receive_mutex);
-			printf("[ASSIGNED_ACCEPTANCE] Process[%d] get his acceptance (MUTEX)\n", my_node_state->node_data->id);
 
 
 		}else{
@@ -243,7 +242,7 @@ int main(int argc, char** argv) {
 
 	sleep(1); //just to pretty printing print
 	sleep(rand_1_to_bound(5)); //just to pretty printing print
-	if(world_rank == 1 || world_rank == 2 || world_rank == 3){
+	if(world_rank == 4 || world_rank == 5 || world_rank == 6){
 		organize_meeting();
 	}
 
