@@ -106,7 +106,94 @@ void* aassigned_acceptance_listener(void* t){
 		}
 	}
 }
+void wait_for_acceptor_acceptance(){
+		int number = 1;
+	   	pthread_mutex_lock(&acceptance_fifo_mutex);
+	   	printf("wait fifo debug \n");
+   		put(my_node_state->acceptance_request_fifo, my_node_state->node_data->id);
+		pthread_mutex_unlock(&acceptance_fifo_mutex);
+		printf("[ACCEPTANCE_REQUEST] process[%d] is waiting for acceptance\n", my_node_state->node_data->id);
+		MPI_Send(&number, 1, MPI_INT, my_node_state->node_data->id, ACCEPTANCE_REQUEST_TAG, MPI_COMM_WORLD);
+   		
+   		pthread_mutex_lock(&acceptance_receive_mutex);
+   		my_node_state->wait_for_acceptance = 1;
+   		while(my_node_state->wait_for_acceptance ==1){
+   			pthread_cond_wait(&acceptance_receive_cv, &acceptance_receive_mutex);
+   		}	
+		pthread_mutex_unlock(&acceptance_receive_mutex);
+		printf("[ASSIGNED_ACCEPTANCE] Process[%d] get his acceptance\n", my_node_state->node_data->id);
 
+}
+
+void wait_for_all_meeting_ack(){
+		node* my_node = my_node_state -> node_data;
+	if(my_node->siblings_length == 0){
+		printf("[ORGANIZE_MEETING] Process[%d] cant organize meeting alone\n", my_node->id);
+		return;
+	}
+	int i;
+	int number = -1;
+	int transfer_listener_id  = create_listener(meeting_acc_listener);
+
+
+	for(i=0;i<my_node->siblings_length;i++){
+		printf("[ORGANIZE_MEETING] Process[%d] asking process[%d] for meeting\n", my_node->id,my_node->siblings[i]);
+		MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], ORGANIZE_MEETING, MPI_COMM_WORLD);
+	}
+
+	void *status;
+    pthread_join(transfer_listener_id, &status);
+}
+
+void take_part_in_meeting(){
+		node* my_node = my_node_state -> node_data;
+		int number = -1;
+	   	MPI_Status status;
+   		printf("[ORGANIZE_MEETING] Process[%d] wait for start meeting\n", my_node->id);
+    	MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, START_MEETING, MPI_COMM_WORLD, &status); 
+   		printf("[ORGANIZE_MEETING] Process[%d] start meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
+   	 	//pal kuce
+   		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, END_MEETING, MPI_COMM_WORLD, &status);
+   		printf("[ORGANIZE_MEETING] Process[%d] end meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
+}
+void organize_meeting(){
+	node* my_node = my_node_state -> node_data;
+	int number = -1;
+	int i;
+   	printf("[ORGANIZE_MEETING] Process[%d] is organizator\n", my_node->id);
+		
+	wait_for_acceptor_acceptance();
+		//todo wait_for_resource
+
+	for(i=0;i<my_node->siblings_length;i++){
+		printf("[ORGANIZE_MEETING] Process[%d] send start meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
+		MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], START_MEETING, MPI_COMM_WORLD);
+	}
+	//todo byc moze inne procesy musza potwierdzic start i czekamy na ich ack
+	sleep(10); //pal kuce
+	for(i=0;i<my_node->siblings_length;i++){
+		printf("[ORGANIZE_MEETING] Process[%d] send end meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
+		MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], END_MEETING, MPI_COMM_WORLD);
+	}
+}
+
+
+void find_meeting(){
+	node* my_node = my_node_state -> node_data;
+	int number = -1;
+	int i;
+	wait_for_all_meeting_ack();
+
+   	printf("[MEETING_ACK] Process[%d] has all ack\n",my_node->id);
+   	if(my_node->id < min_from_arr(my_node->siblings)){
+   		organize_meeting();
+   	}
+   	else{
+   		take_part_in_meeting();
+   	}
+   	printf("[ORGANIZE_MEETING] Process[%d] meeting is over\n", my_node->id);
+
+}
 
 void check_world_size(int size){
 	  // We are assuming at least 2 processes for this task
@@ -129,83 +216,6 @@ void b_cast_resource_owner(int world_size){
 		MPI_Send(&owner_pid, 1, MPI_INT, i, RESOURCE_OWNER_TAG, MPI_COMM_WORLD);
 	}
 } 
-
-int create_listener(void* listener_function){
-	 pthread_t t;
-     int rc = pthread_create(&t, NULL, listener_function, (void *)t);
-		if (rc){
-		      printf("ERROR; return code from pthread_create() is %d\n", rc);
-		      exit(-1);
-		}
-    return t;
-}
-
-void wait_for_acceptor_acceptance(){
-		int number = 1;
-	   	pthread_mutex_lock(&acceptance_fifo_mutex);
-	   	printf("wait fifo debug \n");
-   		put(my_node_state->acceptance_request_fifo, my_node_state->node_data->id);
-		pthread_mutex_unlock(&acceptance_fifo_mutex);
-		printf("[ACCEPTANCE_REQUEST] process[%d] is waiting for acceptance\n", my_node_state->node_data->id);
-		MPI_Send(&number, 1, MPI_INT, my_node_state->node_data->id, ACCEPTANCE_REQUEST_TAG, MPI_COMM_WORLD);
-   		
-   		pthread_mutex_lock(&acceptance_receive_mutex);
-   		my_node_state->wait_for_acceptance = 1;
-   		while(my_node_state->wait_for_acceptance ==1){
-   			pthread_cond_wait(&acceptance_receive_cv, &acceptance_receive_mutex);
-   		}	
-		pthread_mutex_unlock(&acceptance_receive_mutex);
-		printf("[ASSIGNED_ACCEPTANCE] Process[%d] get his acceptance\n", my_node_state->node_data->id);
-
-}
-void organize_meeting(){
-	node* my_node = my_node_state -> node_data;
-	if(my_node->siblings_length == 0){
-		printf("[ORGANIZE_MEETING] Process[%d] cant organize meeting alone\n", my_node->id);
-		return;
-	}
-	int i;
-	int number = -1;
-	int transfer_listener_id  = create_listener(meeting_acc_listener);
-
-
-	for(i=0;i<my_node->siblings_length;i++){
-		printf("[ORGANIZE_MEETING] Process[%d] asking process[%d] for meeting\n", my_node->id,my_node->siblings[i]);
-		MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], ORGANIZE_MEETING, MPI_COMM_WORLD);
-	}
-
-	void *status;
-    pthread_join(transfer_listener_id, &status);
-   	printf("[MEETING_ACK] Process[%d] has all ack\n",my_node->id);
-   	if(my_node->id < min_from_arr(my_node->siblings)){
-   		printf("[ORGANIZE_MEETING] Process[%d] is organizator\n", my_node->id);
-   		
-   		wait_for_acceptor_acceptance();
-   		//todo wait_for_resource
-
-   		for(i=0;i<my_node->siblings_length;i++){
-			printf("[ORGANIZE_MEETING] Process[%d] send start meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
-			MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], START_MEETING, MPI_COMM_WORLD);
-		}
-		//todo byc moze inne procesy musza potwierdzic start i czekamy na ich ack
-		sleep(10); //pal kuce
-		for(i=0;i<my_node->siblings_length;i++){
-			printf("[ORGANIZE_MEETING] Process[%d] send end meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
-			MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], END_MEETING, MPI_COMM_WORLD);
-		}
-   	}
-   	else{
-   		MPI_Status status;
-   		printf("[ORGANIZE_MEETING] Process[%d] wait for start meeting\n", my_node->id);
-    	MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, START_MEETING, MPI_COMM_WORLD, &status); 
-   		printf("[ORGANIZE_MEETING] Process[%d] start meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
-   	 	//pal kuce
-   		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, END_MEETING, MPI_COMM_WORLD, &status);
-   		printf("[ORGANIZE_MEETING] Process[%d] end meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
-   	}
-   	printf("[ORGANIZE_MEETING] Process[%d] meeting is over\n", my_node->id);
-
-}
 
 int main(int argc, char** argv) {
 	//init
@@ -243,7 +253,7 @@ int main(int argc, char** argv) {
 	sleep(1); //just to pretty printing print
 	sleep(rand_1_to_bound(5)); //just to pretty printing print
 	if(world_rank == 4 || world_rank == 5 || world_rank == 6){
-		organize_meeting();
+		find_meeting();
 	}
 
 

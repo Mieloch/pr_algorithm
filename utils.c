@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "utils.h"
+#include <pthread.h>
 
 int rand_1_to_bound(int bound){
 	time_t tt;
@@ -15,6 +16,17 @@ int arr_len(int* arr){
     }
     return sizeof(arr)/sizeof(arr[0]) +1;
 }
+
+int create_listener(void* listener_function){
+	 pthread_t t;
+     int rc = pthread_create(&t, NULL, listener_function, (void *)t);
+		if (rc){
+		      printf("ERROR; return code from pthread_create() is %d\n", rc);
+		      exit(-1);
+		}
+    return t;
+}
+
 
 void print_arr(int * arr, char* arr_name){
     printf("%s = ", arr_name);
