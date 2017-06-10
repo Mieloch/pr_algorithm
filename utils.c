@@ -9,6 +9,13 @@ int rand_1_to_bound(int bound){
 	return (rand() % (bound-1)) +1; // <1,n)
 }
 
+int arr_len(int* arr){
+    if(arr == NULL){
+        return 0;
+    }
+    return sizeof(arr)/sizeof(arr[0]) +1;
+}
+
 void print_arr(int * arr, char* arr_name){
     printf("%s = ", arr_name);
     if(arr == NULL){
@@ -36,9 +43,3 @@ int min_from_arr(int* arr){
 	return min;
 }
 
-int arr_len(int* arr){
-    if(arr == NULL){
-        return 0;
-    }
-    return sizeof(arr)/sizeof(arr[0]) +1;
-}

@@ -5,6 +5,7 @@
 #include "node_structure.h"
 #include "node_state.h"
 #include "utils.h"
+#include <unistd.h>
 
 void get_field(char* line, char* buff, int num){
     int len = strlen(line);
