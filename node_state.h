@@ -7,6 +7,7 @@ typedef struct{
     node* node_data;
     int resource_owner;
     fifo* resource_request_fifo;
+    fifo* acceptance_request_fifo;
 }node_state;
 
 #endif

@@ -4,8 +4,8 @@
 typedef struct{
     int id;
     int parent;
-    int children[3];
-    int siblings[3];
+    int* children;
+    int* siblings;
     int children_length;
     int siblings_length;
 }node;

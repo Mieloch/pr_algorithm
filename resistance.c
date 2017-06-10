@@ -13,6 +13,7 @@
 #define ORGANIZE_MEETING 102
 #define START_MEETING 103
 #define END_MEETING 104
+#define ACCEPTANCE_REQUEST_TAG 105
 
 
 #define BERSERK 666
@@ -26,11 +27,11 @@ void* resource_transfer_listener(void * t){ // nasluchiwanie na przekazywanie za
 	node* my_node = my_node_state->node_data;
 	while(1){
     	MPI_Recv(&resource_id, 1, MPI_INT, MPI_ANY_SOURCE, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD, &status); 
-    	printf("Process[%d], recived berserk from process[%d]\n", my_node->id, status.MPI_SOURCE);
+    	printf("[RESOURCE_TRANSFER] Process[%d], recived berserk from process[%d]\n", my_node->id, status.MPI_SOURCE);
 		if(my_node->id == 0){
 			my_node_state->resource_owner = 0;
 		}else{
-			printf("Process[%d] pass resource to parent[%d]\n", my_node->id,my_node->parent);
+			printf("[RESOURCE_TRANSFER] Process[%d] pass resource to parent[%d]\n", my_node->id,my_node->parent);
 			MPI_Send(&resource_id, 1, MPI_INT, my_node->parent, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD);
 			my_node_state->resource_owner = my_node->parent;
 		}
@@ -43,13 +44,31 @@ void* meeting_acc_listener(void* t){ //nasluchiwanie na akceptacje spotkania
 	int ack_count = 0;
 	int number = 1;
 	while(ack_count < my_node->siblings_length){
-		printf("Process[%d] need %d more ack\n", my_node->id, my_node->siblings_length-ack_count);
+		printf("[MEETING_ACK] Process[%d] need %d more ack\n", my_node->id, my_node->siblings_length-ack_count);
     	MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, ORGANIZE_MEETING, MPI_COMM_WORLD, &status); 
 		ack_count++;
-		printf("Process[%d] got meeting ack from process[%d]\n", my_node->id,status.MPI_SOURCE);
+		printf("[MEETING_ACK] Process[%d] got meeting ack from process[%d]\n", my_node->id,status.MPI_SOURCE);
 	}
 	pthread_exit(NULL);
+}
 
+void* acceptance_request_listener(void* t){
+	int number;
+	MPI_Status status;
+	while(1){
+		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, ACCEPTANCE_REQUEST_TAG, MPI_COMM_WORLD, &status); 
+		if(my_node_state->node_data->id == 0){
+			printf("[ACCEPTANCE_REQUEST] Acceptor process[%d] received acceptance request from process[%d]\n", my_node_state->node_data->id, status.MPI_SOURCE);
+			MPI_Send(&number, 1, MPI_INT, status.MPI_SOURCE, ACCEPTANCE_REQUEST_TAG, MPI_COMM_WORLD);
+		}
+		else{
+			//lock
+			put(my_node_state->acceptance_request_fifo, status.MPI_SOURCE);
+			//unclock
+			printf("[ACCEPTANCE_REQUEST] Process[%d] received acceptance request from process[%d] and pass it to process[%d]\n", my_node_state->node_data->id, status.MPI_SOURCE, my_node_state->node_data->parent);
+			MPI_Send(&number, 1, MPI_INT, my_node_state->node_data->parent, ACCEPTANCE_REQUEST_TAG, MPI_COMM_WORLD);
+		}
+	}
 }
 
 
@@ -88,7 +107,7 @@ int create_listener(void* listener_function){
 void organize_meeting(){
 	node* my_node = my_node_state -> node_data;
 	if(my_node->siblings_length == 0){
-		printf("Process[%d] cant organize meeting alone\n", my_node->id);
+		printf("[ORGANIZE_MEETING] Process[%d] cant organize meeting alone\n", my_node->id);
 		return;
 	}
 	int i;
@@ -97,37 +116,37 @@ void organize_meeting(){
 
 
 	for(i=0;i<my_node->siblings_length;i++){
-		printf("Process[%d] asking process[%d] for meeting\n", my_node->id,my_node->siblings[i]);
+		printf("[ORGANIZE_MEETING] Process[%d] asking process[%d] for meeting\n", my_node->id,my_node->siblings[i]);
 		MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], ORGANIZE_MEETING, MPI_COMM_WORLD);
 	}
 
 	void *status;
     pthread_join(transfer_listener_id, &status);
-   	printf("Process[%d] has all ack\n",my_node->id);
+   	printf("[MEETING_ACK] Process[%d] has all ack\n",my_node->id);
    	if(my_node->id < min_from_arr(my_node->siblings)){
-   		printf("Process[%d] is organizator\n", my_node->id);
+   		printf("[ORGANIZE_MEETING] Process[%d] is organizator\n", my_node->id);
    		// todo zasob i zgoda
    		for(i=0;i<my_node->siblings_length;i++){
-			printf("Process[%d] send start meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
+			printf("[ORGANIZE_MEETING] Process[%d] send start meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
 			MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], START_MEETING, MPI_COMM_WORLD);
 		}
 		//todo byc moze inne procesy musza potwierdzic start i czekamy na ich ack
 		sleep(10); //pal kuce
 		for(i=0;i<my_node->siblings_length;i++){
-			printf("Process[%d] send end meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
+			printf("[ORGANIZE_MEETING] Process[%d] send end meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
 			MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], END_MEETING, MPI_COMM_WORLD);
 		}
    	}
    	else{
    		MPI_Status status;
-   		printf("Process[%d] wait for start meeting\n", my_node->id);
+   		printf("[ORGANIZE_MEETING] Process[%d] wait for start meeting\n", my_node->id);
     	MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, START_MEETING, MPI_COMM_WORLD, &status); 
-   		printf("Process[%d] start meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
+   		printf("[ORGANIZE_MEETING] Process[%d] start meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
    	 	//pal kuce
    		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, END_MEETING, MPI_COMM_WORLD, &status);
-   		printf("Process[%d] end meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
+   		printf("[ORGANIZE_MEETING] Process[%d] end meeting arrived from process[%d]\n",my_node->id, status.MPI_SOURCE);
    	}
-   	printf("Process[%d] meeting is over\n", my_node->id);
+   	printf("[ORGANIZE_MEETING] Process[%d] meeting is over\n", my_node->id);
 
 }
 
@@ -154,7 +173,7 @@ int main(int argc, char** argv) {
 		//printf("Process %d received recource owner = %d from process 0\n", world_rank, owner_pid);
 		if(owner_pid == world_rank){
 			int berserk_id = BERSERK;
-			printf("Process[%d] send berserk to parent[%d]\n", world_rank, my_node_state->node_data->parent);
+			printf("[RESOURCE_TRANSFER] Process[%d] send berserk to parent[%d]\n", world_rank, my_node_state->node_data->parent);
 			MPI_Send(&berserk_id, 1, MPI_INT, my_node_state->node_data->parent, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD);
 		}
 	}
