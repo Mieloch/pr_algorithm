@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "utils.h"
 
 int rand_1_to_bound(int bound){
 	time_t tt;
@@ -13,6 +14,19 @@ int arr_len(int* arr){
         return 0;
     }
     return sizeof(arr)/sizeof(arr[0]) +1;
+}
+
+void print_arr(int * arr, char* arr_name){
+    printf("%s = ", arr_name);
+    if(arr == NULL){
+        printf("none ");
+        return;
+    }
+    int len = arr_len(arr);
+    int i = 0;
+    for(i=0;i<len;i++){
+        printf("%d, ", arr[i]);
+    }
 }
 
 int min_from_arr(int* arr){

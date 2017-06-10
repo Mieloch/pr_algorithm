@@ -98,18 +98,7 @@ int* find_children(char* line){
     return column_to_int_arr(buff);
 }
 
-void print_arr(int * arr, char* arr_name){
-    printf("%s = ", arr_name);
-    if(arr == NULL){
-        printf("none ");
-        return;
-    }
-    int len = arr_len(arr);
-    int i = 0;
-    for(i=0;i<len;i++){
-        printf("%d, ", arr[i]);
-    }
-}
+
 void print_node(node* n){
     print_arr(n->siblings, "siblings");
     print_arr(n->children, "children");
@@ -154,6 +143,7 @@ node_state* init_node(int node_id){
     print_node(my_node);
     node_state* my_node_state = malloc(sizeof(node_state));
     my_node_state->node_data=my_node;
+    my_node_state->wait_for_acceptance = 0;
     my_node_state->resource_owner=my_node->parent;
     my_node_state->resource_request_fifo = malloc(sizeof(fifo));
     my_node_state->acceptance_request_fifo = malloc(sizeof(fifo));

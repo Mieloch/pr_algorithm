@@ -2,7 +2,7 @@
 #define FIFO_H
 
 typedef struct{
-    int elements[100]; // kolejka pomiesci n-1 
+    int elements[10]; // kolejka pomiesci n-1 
     int start;
     int end;
 }fifo;

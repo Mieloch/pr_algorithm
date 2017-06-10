@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "fifo.h"
-
+#include "utils.h"
 int put(fifo* queue, int elem) 
 {
 	if(queue->end == queue->start) //tylko gdy pusta
@@ -19,7 +19,7 @@ int put(fifo* queue, int elem)
 	}
 	return 1;
 }
- 
+
 int pop(fifo* queue)
 { 
 	if(queue->start == queue->end){
@@ -31,35 +31,36 @@ int pop(fifo* queue)
 }
 // int main(){
 // 	fifo* queue = malloc(sizeof(fifo));
-// 	printf("put %d\n", put(queue,1));
-// 	printf("put %d\n", put(queue,2));;
-// 	printf("put %d\n", put(queue,3));;
-// 	printf("put %d\n", put(queue,4));;
-// 	printf("put %d\n", put(queue,5));;
 // 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("put %d\n", put(queue,1));
-// 	printf("put %d\n", put(queue,2));;
-// 	printf("put %d\n", put(queue,3));;
-// 	printf("put %d\n", put(queue,4));;
-// 	printf("put %d\n", put(queue,5));;
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 		printf("put %d\n", put(queue,1));
-// 	printf("put %d\n", put(queue,2));;
-// 	printf("put %d\n", put(queue,3));;
-// 	printf("put %d\n", put(queue,4));;
-// 	printf("put %d\n", put(queue,5));;
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
+// 		printf("pop %d\n", pop(queue));
+
+// 	// printf("put %d\n", put(queue,2));;
+// 	// printf("put %d\n", put(queue,3));;
+// 	// printf("put %d\n", put(queue,4));;
+// 	// printf("put %d\n", put(queue,5));;
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("put %d\n", put(queue,1));
+// 	// printf("put %d\n", put(queue,2));;
+// 	// printf("put %d\n", put(queue,3));;
+// 	// printf("put %d\n", put(queue,4));;
+// 	// printf("put %d\n", put(queue,5));;
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// 	printf("put %d\n", put(queue,1));
+// 	// printf("put %d\n", put(queue,2));;
+// 	// printf("put %d\n", put(queue,3));;
+// 	// printf("put %d\n", put(queue,4));;
+// 	// printf("put %d\n", put(queue,5));;
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
+// 	// printf("pop %d\n", pop(queue));
 
 
 // }
