@@ -56,7 +56,7 @@ void* meeting_acc_listener(void* t){ //nasluchiwanie na akceptacje spotkania
 	pthread_exit(NULL);
 }
 
-void* acceptance_request_listener(void* t){
+void* acceptance_request_listener(void* t){ // nasluchiwanie na prosby o zgode
 	int number;
 	MPI_Status status;
 	while(1){
@@ -78,7 +78,7 @@ void* acceptance_request_listener(void* t){
 	}
 }
 
-void* aassigned_acceptance_listener(void* t){
+void* aassigned_acceptance_listener(void* t){ // nasluchiwanie na uzyskane zgody
 	int adress;
 	MPI_Status status;
 	while(1){
@@ -106,6 +106,7 @@ void* aassigned_acceptance_listener(void* t){
 		}
 	}
 }
+
 void wait_for_acceptor_acceptance(){
 		int number = 1;
 	   	pthread_mutex_lock(&acceptance_fifo_mutex);
