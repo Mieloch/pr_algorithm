@@ -97,8 +97,9 @@ void* aassigned_acceptance_listener(void* t){
 			pthread_mutex_lock(&acceptance_receive_mutex);
 			my_node_state->wait_for_acceptance == 0;
 			pthread_cond_signal(&acceptance_receive_cv);
+			printf("cond signal\n");
 			pthread_mutex_unlock(&acceptance_receive_mutex);
-			printf("[ASSIGNED_ACCEPTANCE] Process[%d] get his acceptance\n", my_node_state->node_data->id);
+			printf("[ASSIGNED_ACCEPTANCE] Process[%d] get his acceptance (MUTEX)\n", my_node_state->node_data->id);
 
 
 		}else{
@@ -149,12 +150,16 @@ void wait_for_acceptor_acceptance(){
 		pthread_mutex_unlock(&acceptance_fifo_mutex);
 		printf("[ACCEPTANCE_REQUEST] process[%d] is waiting for acceptance\n", my_node_state->node_data->id);
 		MPI_Send(&number, 1, MPI_INT, my_node_state->node_data->id, ACCEPTANCE_REQUEST_TAG, MPI_COMM_WORLD);
+   		
    		pthread_mutex_lock(&acceptance_receive_mutex);
    		my_node_state->wait_for_acceptance = 1;
    		while(my_node_state->wait_for_acceptance ==1){
+   			printf("in lock\n");
    			pthread_cond_wait(&acceptance_receive_cv, &acceptance_receive_mutex);
    		}	
 		pthread_mutex_unlock(&acceptance_receive_mutex);
+		printf("[ASSIGNED_ACCEPTANCE] Process[%d] get his acceptance\n", my_node_state->node_data->id);
+
 }
 void organize_meeting(){
 	node* my_node = my_node_state -> node_data;
