@@ -6,6 +6,7 @@
 typedef struct{
     node* node_data;
     int resource_owner;
+    int wait_for_acceptance;
     fifo* resource_request_fifo;
     fifo* acceptance_request_fifo;
 }node_state;
