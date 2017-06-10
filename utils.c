@@ -7,6 +7,14 @@ int rand_1_to_bound(int bound){
 	srand(time(&tt));
 	return (rand() % (bound-1)) +1; // <1,n)
 }
+
+int arr_len(int* arr){
+    if(arr == NULL){
+        return 0;
+    }
+    return sizeof(arr)/sizeof(arr[0]) +1;
+}
+
 int min_from_arr(int* arr){
 	if(arr == NULL){
 		return -1;
@@ -21,9 +29,3 @@ int min_from_arr(int* arr){
 	return min;
 }
 
-int arr_len(int* arr){
-    if(arr == NULL){
-        return 0;
-    }
-    return sizeof(arr)/sizeof(arr[0]) +1;
-}
