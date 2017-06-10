@@ -31,7 +31,7 @@ void* resource_transfer_listener(void * t){ // nasluchiwanie na przekazywanie za
 	node* my_node = my_node_state->node_data;
 	while(1){
     	MPI_Recv(&resource_id, 1, MPI_INT, MPI_ANY_SOURCE, RESOURCE_TRANSFER_TAG, MPI_COMM_WORLD, &status); 
-    	printf("[RESOURCE_TRANSFER] Process[%d], recived berserk from process[%d]\n", my_node->id, status.MPI_SOURCE);
+    	printf("[RESOURCE_TRANSFER] Process[%d] recived berserk from process[%d]\n", my_node->id, status.MPI_SOURCE);
 		if(my_node->id == 0){
 			my_node_state->resource_owner = 0;
 		}else{
@@ -196,19 +196,7 @@ void find_meeting(){
 
 }
 
-void check_world_size(int size){
-	  // We are assuming at least 2 processes for this task
-  if (size < 2) {
-    fprintf(stderr, "World size must be greater than 1!\n");
-    MPI_Abort(MPI_COMM_WORLD, 1);
-  }
-}
-void check_thread_support(int provided){
- 	if (provided!=MPI_THREAD_MULTIPLE) {
-        fprintf(stderr, "NO THREAD SUPPORT!!\n");
-        exit(-1);
-	}
-}
+
 void b_cast_resource_owner(int world_size){
 	int owner_pid = rand_1_to_bound(world_size);
 	printf("Resource owner pid is = %d\n", owner_pid);
@@ -253,9 +241,14 @@ int main(int argc, char** argv) {
 
 	sleep(1); //just to pretty printing print
 	sleep(rand_1_to_bound(5)); //just to pretty printing print
-	if(world_rank == 4 || world_rank == 5 || world_rank == 6){
-		find_meeting();
+
+	while(1){
+		if(world_rank == 4 || world_rank == 5 || world_rank == 6){
+			find_meeting();
+		}
+		sleep(rand_1_to_bound(5));
 	}
+
 
 
 	void *status;

@@ -3,11 +3,26 @@
 #include <time.h>
 #include "utils.h"
 #include <pthread.h>
+#include <mpi.h>
 
 int rand_1_to_bound(int bound){
 	time_t tt;
 	srand(time(&tt));
 	return (rand() % (bound-1)) +1; // <1,n)
+}
+
+void check_world_size(int size){
+	  // We are assuming at least 2 processes for this task
+  if (size < 2) {
+    fprintf(stderr, "World size must be greater than 1!\n");
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+}
+void check_thread_support(int provided){
+ 	if (provided!=MPI_THREAD_MULTIPLE) {
+        fprintf(stderr, "NO THREAD SUPPORT!!\n");
+        exit(-1);
+	}
 }
 
 int arr_len(int* arr){
