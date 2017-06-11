@@ -25,6 +25,7 @@ int pop(fifo* queue)
 	if(queue->start == queue->end){
 		return -1; //pusta
 	}
+	// printf("fifo pop start = %d\n", queue->start);
 	int first = queue->elements[queue->start];
 	queue->start = (queue->start +1)%10;
 	return first;

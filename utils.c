@@ -29,7 +29,7 @@ int arr_len(int* arr){
     if(arr == NULL){
         return 0;
     }
-    return sizeof(arr)/sizeof(arr[0]) +1;
+    return sizeof(arr)/sizeof(arr[0]);
 }
 
 int create_listener(void* listener_function){

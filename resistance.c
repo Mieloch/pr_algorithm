@@ -15,13 +15,18 @@
 #define END_MEETING 104
 #define ACCEPTANCE_REQUEST_TAG 105
 #define ASSIGNED_ACCEPTANCE_TAG 106
-
+#define RESOURCE_REQUEST_TAG 107
+#define RESOURCE_ASSIGN_TAG 108
 #define BERSERK 666
+pthread_mutex_t resource_mutex;
+pthread_mutex_t using_resource_mutex;
 
-pthread_mutex_t mutex_resource;
 pthread_mutex_t acceptance_fifo_mutex;
+pthread_mutex_t resource_fifo_mutex;
+pthread_mutex_t sent_resource_mutex;
 pthread_mutex_t acceptance_receive_mutex;
 pthread_cond_t acceptance_receive_cv;
+pthread_cond_t resource_cv;
 
 node_state* my_node_state;
 //LISTENERS
@@ -56,6 +61,122 @@ void* meeting_acc_listener(void* t){ //nasluchiwanie na akceptacje spotkania
 	pthread_exit(NULL);
 }
 
+void* resource_assign_listener(void* t){
+	int number;
+	MPI_Status status;
+	while(1){
+		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, RESOURCE_ASSIGN_TAG, MPI_COMM_WORLD, &status); 
+		pthread_mutex_lock(&resource_fifo_mutex);
+		int first_in_queue =  pop(my_node_state->resource_request_fifo);
+		pthread_mutex_unlock(&resource_fifo_mutex);	
+		
+		if(first_in_queue == my_node_state->node_data->id){
+			printf("[RESOURE_ASSIGN] Process[%d] receive his resource assignment\n", my_node_state->node_data->id);
+			pthread_mutex_lock(&resource_mutex);
+			my_node_state->resource_owner = my_node_state->node_data->id;
+   			pthread_cond_signal(&resource_cv);
+   			
+			pthread_mutex_unlock(&resource_mutex);
+
+   		}
+   		else{
+   			pthread_mutex_lock(&resource_mutex);
+   			printf("[RESOURE_ASSIGN] Process[%d] receive resource acceptance from process[%d] and pass it to process[%d]\n", my_node_state->node_data->id,status.MPI_SOURCE, first_in_queue);
+   			MPI_Send(&number, 1, MPI_INT, first_in_queue, RESOURCE_ASSIGN_TAG, MPI_COMM_WORLD);   	
+	
+			my_node_state->resource_owner = first_in_queue;
+   			
+			pthread_mutex_lock(&resource_fifo_mutex);
+			while(first_in_queue = pop(my_node_state->resource_request_fifo) != -1){
+				printf("[RESOURE_REQUEST] Process[%d] pass resource request to process[%d]\n", my_node_state->node_data->id, my_node_state->resource_owner);
+   				MPI_Send(&number, 1, MPI_INT, my_node_state->resource_owner, RESOURCE_REQUEST_TAG, MPI_COMM_WORLD);   	
+			} 
+			pthread_mutex_unlock(&resource_fifo_mutex);
+
+		pthread_mutex_lock(&sent_resource_mutex);
+		my_node_state->sent_resource_request = 0;
+		pthread_mutex_unlock(&sent_resource_mutex);
+
+
+			pthread_mutex_unlock(&resource_mutex);
+   		}
+
+	}
+		
+}
+
+
+void* resource_request_listener(void* t){ // nasluchiwanie na prosby o zasob
+	int number;
+	MPI_Status status;
+	while(1){
+		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, RESOURCE_REQUEST_TAG, MPI_COMM_WORLD, &status); 
+
+
+
+		printf("[RESOURE_REQUEST] Process[%d] received resource request from process[%d]\n", my_node_state->node_data->id, status.MPI_SOURCE);
+		pthread_mutex_lock(&sent_resource_mutex);
+		if(my_node_state->node_data->id != my_node_state->resource_owner){
+			printf("if process[%d] \n",my_node_state->node_data->id);
+			pthread_mutex_lock(&resource_fifo_mutex);
+	   		put(my_node_state->resource_request_fifo, status.MPI_SOURCE);
+			pthread_mutex_unlock(&resource_fifo_mutex);
+
+			if(my_node_state->sent_resource_request == 0){
+				printf("[RESOURE_REQUEST] Process[%d] pass resource request to process[%d]\n", my_node_state->node_data->id, my_node_state->resource_owner);
+	   			MPI_Send(&number, 1, MPI_INT, my_node_state->resource_owner, RESOURCE_REQUEST_TAG, MPI_COMM_WORLD);   	
+				my_node_state->sent_resource_request = 1;
+			}
+		}else if(my_node_state->node_data->id == my_node_state->resource_owner){
+			printf("Resource owner process[%d] got resource request\n",my_node_state->node_data->id);
+			pthread_mutex_lock(&using_resource_mutex);
+			//sekcja
+			pthread_mutex_lock(&resource_fifo_mutex);
+   			int first_in_queue = pop(my_node_state->resource_request_fifo);
+			pthread_mutex_unlock(&resource_fifo_mutex);
+
+			printf("[RESOURCE_ASSIGN] Process[%d] surrender resource and pass it to process[%d]\n", my_node_state->node_data->id, status.MPI_SOURCE);
+			MPI_Send(&number, 1, MPI_INT, status.MPI_SOURCE, RESOURCE_ASSIGN_TAG, MPI_COMM_WORLD);   	
+			my_node_state->resource_owner = status.MPI_SOURCE;
+
+			pthread_mutex_unlock(&using_resource_mutex);
+			pthread_mutex_lock(&resource_fifo_mutex);
+			while(first_in_queue = pop(my_node_state->resource_request_fifo) != -1){
+				printf("[RESOURE_REQUEST] Process[%d] pass resource request to process[%d]\n", my_node_state->node_data->id, my_node_state->resource_owner);
+   				MPI_Send(&number, 1, MPI_INT, my_node_state->resource_owner, RESOURCE_REQUEST_TAG, MPI_COMM_WORLD);   	
+			} 
+			pthread_mutex_unlock(&resource_fifo_mutex);
+		
+		}	
+		pthread_mutex_unlock(&sent_resource_mutex);
+
+	}
+}
+
+
+void request_for_resource(){
+		int number = 1;
+	   	pthread_mutex_lock(&resource_fifo_mutex);
+   		put(my_node_state->resource_request_fifo, my_node_state->node_data->id);
+		pthread_mutex_unlock(&resource_fifo_mutex);
+
+		printf("[RESOURCE_REQUEST] process[%d] ask process[%d] for resource\n", my_node_state->node_data->id, my_node_state->resource_owner);
+		
+		MPI_Send(&number, 1, MPI_INT, my_node_state->resource_owner, RESOURCE_REQUEST_TAG, MPI_COMM_WORLD);
+
+   		pthread_mutex_lock(&resource_mutex);
+   		while(my_node_state->resource_owner != my_node_state->node_data->id){
+   			pthread_cond_wait(&resource_cv, &resource_mutex);
+   		}
+	   	pthread_mutex_lock(&using_resource_mutex);
+	
+		pthread_mutex_unlock(&resource_mutex);
+
+		printf("[RESOURCE_REQUEST] Process[%d] got resource\n", my_node_state->node_data->id);
+}
+
+
+
 void* acceptance_request_listener(void* t){ // nasluchiwanie na prosby o zgode
 	int number;
 	MPI_Status status;
@@ -78,6 +199,8 @@ void* acceptance_request_listener(void* t){ // nasluchiwanie na prosby o zgode
 	}
 }
 
+
+
 void* aassigned_acceptance_listener(void* t){ // nasluchiwanie na uzyskane zgody
 	int adress;
 	MPI_Status status;
@@ -88,12 +211,12 @@ void* aassigned_acceptance_listener(void* t){ // nasluchiwanie na uzyskane zgody
 		//printf("[start]pop acceptance_request_fifo\n");
 		sleep(3);
 		//print_arr(my_node_state->acceptance_request_fifo->elements, "request_fifo");
-		int first_in_queueue = pop(my_node_state->acceptance_request_fifo);
+		int first_in_queue = pop(my_node_state->acceptance_request_fifo);
 		//printf("[end]pop acceptance_request_fifo\n");
 
 		pthread_mutex_unlock(&acceptance_fifo_mutex);
 		
-		if(first_in_queueue == my_node_state->node_data->id){
+		if(first_in_queue == my_node_state->node_data->id){
 			pthread_mutex_lock(&acceptance_receive_mutex);
 			my_node_state->wait_for_acceptance = 0;
 			pthread_cond_signal(&acceptance_receive_cv);
@@ -101,8 +224,8 @@ void* aassigned_acceptance_listener(void* t){ // nasluchiwanie na uzyskane zgody
 
 
 		}else{
-			printf("[ASSIGNED_ACCEPTANCE] Process[%d] pass acceptance to to process[%d]\n", my_node_state->node_data->id, first_in_queueue);
-			MPI_Send(&adress, 1, MPI_INT, first_in_queueue, ASSIGNED_ACCEPTANCE_TAG, MPI_COMM_WORLD);
+			printf("[ASSIGNED_ACCEPTANCE] Process[%d] pass acceptance to to process[%d]\n", my_node_state->node_data->id, first_in_queue);
+			MPI_Send(&adress, 1, MPI_INT, first_in_queue, ASSIGNED_ACCEPTANCE_TAG, MPI_COMM_WORLD);
 		}
 	}
 }
@@ -110,7 +233,6 @@ void* aassigned_acceptance_listener(void* t){ // nasluchiwanie na uzyskane zgody
 void wait_for_acceptor_acceptance(){
 		int number = 1;
 	   	pthread_mutex_lock(&acceptance_fifo_mutex);
-	   	printf("wait fifo debug \n");
    		put(my_node_state->acceptance_request_fifo, my_node_state->node_data->id);
 		pthread_mutex_unlock(&acceptance_fifo_mutex);
 		printf("[ACCEPTANCE_REQUEST] process[%d] is waiting for acceptance\n", my_node_state->node_data->id);
@@ -122,9 +244,9 @@ void wait_for_acceptor_acceptance(){
    			pthread_cond_wait(&acceptance_receive_cv, &acceptance_receive_mutex);
    		}	
 		pthread_mutex_unlock(&acceptance_receive_mutex);
-		printf("[ASSIGNED_ACCEPTANCE] Process[%d] get his acceptance\n", my_node_state->node_data->id);
-
+		printf("[ASSIGNED_ACCEPTANCE] Process[%d] got his acceptance\n", my_node_state->node_data->id);
 }
+
 
 void wait_for_all_meeting_ack(){
 		node* my_node = my_node_state -> node_data;
@@ -164,6 +286,7 @@ void organize_meeting(){
    	printf("[ORGANIZE_MEETING] Process[%d] is organizator\n", my_node->id);
 		
 	wait_for_acceptor_acceptance();
+	request_for_resource();
 		//todo wait_for_resource
 
 	for(i=0;i<my_node->siblings_length;i++){
@@ -176,6 +299,12 @@ void organize_meeting(){
 		printf("[ORGANIZE_MEETING] Process[%d] send end meeting to process[%d]\n", my_node->id,my_node->siblings[i]);
 		MPI_Send(&number, 1, MPI_INT, my_node->siblings[i], END_MEETING, MPI_COMM_WORLD);
 	}
+	// release
+
+
+
+	pthread_mutex_unlock(&using_resource_mutex);
+
 }
 
 
@@ -216,14 +345,21 @@ int main(int argc, char** argv) {
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	check_world_size(world_size);
-    pthread_mutex_init(&mutex_resource, NULL);
+    pthread_mutex_init(&resource_mutex, NULL);
 	pthread_mutex_init(&acceptance_fifo_mutex,NULL);
 	pthread_mutex_init(&acceptance_receive_mutex,NULL);
+	pthread_mutex_init(&sent_resource_mutex, NULL);
+	pthread_mutex_init(&using_resource_mutex, NULL);
+
 	pthread_cond_init(&acceptance_receive_cv, NULL);
+	pthread_cond_init(&resource_cv, NULL);
+
 	my_node_state= init_node(world_rank);
 	int resource_transfer_listener_id  = create_listener(resource_transfer_listener);
 	int acceptance_request_listener_id  = create_listener(acceptance_request_listener);
 	int aassigned_acceptance_listener_id  = create_listener(aassigned_acceptance_listener);
+	int resource_request_listener_id = create_listener(resource_request_listener);
+	int resource_assign_listener_id = create_listener(resource_assign_listener);
 
 
 	if (world_rank == 0) {
@@ -242,12 +378,15 @@ int main(int argc, char** argv) {
 	sleep(1); //just to pretty printing print
 	sleep(rand_1_to_bound(5)); //just to pretty printing print
 
-	while(1){
-		if(world_rank == 4 || world_rank == 5 || world_rank == 6){
+	int k = 0;
+	while(k<2){
+		if(world_rank == 4 || world_rank == 5 || world_rank == 6 || world_rank == 12 || world_rank == 11 || world_rank == 10){
 			find_meeting();
 		}
 		sleep(rand_1_to_bound(5));
+		k++;
 	}
+	
 
 
 
@@ -257,7 +396,7 @@ int main(int argc, char** argv) {
     pthread_join(aassigned_acceptance_listener_id, &status);
 
 	pthread_mutex_destroy(&acceptance_fifo_mutex);
-	pthread_mutex_destroy(&mutex_resource);
+	pthread_mutex_destroy(&resource_mutex);
 	pthread_mutex_destroy(&acceptance_receive_mutex);
 	pthread_cond_destroy(&acceptance_receive_cv);
 

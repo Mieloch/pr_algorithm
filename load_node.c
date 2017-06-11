@@ -146,7 +146,12 @@ node_state* init_node(int node_id){
     my_node_state->wait_for_acceptance = 0;
     my_node_state->resource_owner=my_node->parent;
     my_node_state->resource_request_fifo = malloc(sizeof(fifo));
+    my_node_state->resource_request_fifo->start = 0;
+    my_node_state->resource_request_fifo->end = 0;
+
     my_node_state->acceptance_request_fifo = malloc(sizeof(fifo));
+    my_node_state->acceptance_request_fifo->start = 0;
+    my_node_state->acceptance_request_fifo->end = 0;
     sleep(1); //just for print
     return my_node_state;
 }
