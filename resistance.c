@@ -117,7 +117,6 @@ void* resource_request_listener(void* t){ // nasluchiwanie na prosby o zasob
 		printf("[RESOURE_REQUEST] Process[%d] received resource request from process[%d]\n", my_node_state->node_data->id, status.MPI_SOURCE);
 		pthread_mutex_lock(&sent_resource_mutex);
 		if(my_node_state->node_data->id != my_node_state->resource_owner){
-			printf("if process[%d] \n",my_node_state->node_data->id);
 			pthread_mutex_lock(&resource_fifo_mutex);
 	   		put(my_node_state->resource_request_fifo, status.MPI_SOURCE);
 			pthread_mutex_unlock(&resource_fifo_mutex);
