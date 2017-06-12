@@ -39,18 +39,29 @@ int fifo_is_empty(fifo* queue) {
 		return 0;
 	}
 }
-
+void print_fifo(fifo* queue){
+	int i = queue->start;
+	int j = queue->end;
+	int elem;
+	while(i != j){
+			 elem = queue->elements[i];
+			i = (i +1)%10;
+			printf("%d, ", elem);
+	}
+	// printf("fifo pop start = %d\n", queue->start);
+}
 // int main(){
 // 	fifo* queue = malloc(sizeof(fifo));
 // 	queue->start=0;
 // 	queue->end=0;
 
 // 	printf("put %d\n", put(queue,2));;
-// 	printf("put %d\n", put(queue,3));;
-// 	printf("pop %d\n", pop(queue));
-// 	printf("pop %d\n", pop(queue));
+// 	// printf("put %d\n", put(queue,3));;
+// 		// printf("put %d\n", put(queue,33));;
+// // 
+// 	// printf("put %d\n", put(queue,55));;;
 
-// 	printf("empty %d\n",fifo_is_empty(queue));
+// 	print_fifo(queue);
 
 
 // }
