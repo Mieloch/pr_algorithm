@@ -25,13 +25,6 @@ void check_thread_support(int provided){
 	}
 }
 
-int arr_len(int* arr){
-    if(arr == NULL){
-        return 0;
-    }
-    return sizeof(arr)/sizeof(arr[0]);
-}
-
 int create_listener(void* listener_function){
 	 pthread_t t;
      int rc = pthread_create(&t, NULL, listener_function, (void *)t);
@@ -43,26 +36,26 @@ int create_listener(void* listener_function){
 }
 
 
-void print_arr(int * arr, char* arr_name){
+void print_arr(int * arr, char* arr_name, int size){
     printf("%s = ", arr_name);
     if(arr == NULL){
         printf("none ");
         return;
     }
-    int len = arr_len(arr);
+    int len = size;
     int i = 0;
     for(i=0;i<len;i++){
         printf("%d, ", arr[i]);
     }
 }
 
-int min_from_arr(int* arr){
+int min_from_arr(int* arr, int size){
 	if(arr == NULL){
 		return -1;
 	}
 	int i=0;
 	int min = arr[0];
-	for(i=1;i<arr_len(arr);i++){
+	for(i=1;i<size;i++){
 		if(arr[i] < min){
 			min = arr[i];
 		}

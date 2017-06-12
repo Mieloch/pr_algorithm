@@ -309,7 +309,7 @@ void find_meeting(){
 	wait_for_all_meeting_ack();
 
    	printf("[MEETING_ACK] Process[%d] has all ack\n",my_node->id);
-   	if(my_node->id < min_from_arr(my_node->siblings)){
+   	if(my_node->id < min_from_arr(my_node->siblings, my_node->siblings_length)){
    		organize_meeting();
    	}
    	else{

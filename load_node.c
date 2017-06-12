@@ -34,6 +34,18 @@ void get_field(char* line, char* buff, int num){
     buff[col_len] = '\0';
 }
 
+int len(char* line){
+    char buff[20];
+    int j =0;
+    strcpy(buff,line);
+    char* token = strtok(buff, ",");
+    while(token){
+        j++;
+        token = strtok(0,",");
+    }
+    return j + 1;
+}
+
 int* column_to_int_arr(char* column){
     if(column[0] == 'x'){
         return NULL;
@@ -52,10 +64,18 @@ int* column_to_int_arr(char* column){
     int j =0;
     char* token = strtok(column, ",");
     while(token){
+        // printf("%s token\n", token);
         arr[j] = atoi(token);
         j++;
         token = strtok(0,",");
     }
+    int g = 0;
+    for(g=0;g<j;g++){
+        // printf("arr %d, ", arr[g]);
+    }
+    // print_arr(arr, "gowno", j);
+    // printf("#####\n");
+
     return arr;
 
 }
@@ -73,35 +93,36 @@ int find_id(char* line){
         return id;
 }
 
-int* find_siblings(char* line){
+void find_siblings(char* line, node* my_node){
     char buff[20];
     get_field(line,buff, 3);
-    return column_to_int_arr(buff);
+    my_node->siblings = column_to_int_arr(buff);
+    my_node->siblings_length = len(buff);
 }
 
-int find_parent(char* line){
+void find_parent(char* line, node* my_node){
     char buff[20];
     get_field(line, buff, 2);
     int parent;
     if(column_to_int_arr(buff) == NULL){
-        parent = -1;
+        my_node->parent = -1;
     }
     else{
-        parent = column_to_int_arr(buff)[0];
+        my_node->parent = column_to_int_arr(buff)[0];
     }
-    return parent;
 }
 
-int* find_children(char* line){
+void find_children(char* line, node* my_node){
     char buff[20];
     get_field(line, buff, 4);
-    return column_to_int_arr(buff);
+    my_node->children = column_to_int_arr(buff);
+    my_node->children_length = len(buff);
 }
 
 
 void print_node(node* n){
-    print_arr(n->siblings, "siblings");
-    print_arr(n->children, "children");
+    print_arr(n->siblings, "siblings", n->siblings_length);
+    print_arr(n->children, "children", n->children_length);
     printf("parent = %d ", n->parent);
     printf("id = %d\n", n->id);
     
@@ -120,16 +141,10 @@ node* load_node(int pid)
     while ((read = getline(&line, &len, fp)) != -1) {
         int id = find_id(line);
         if(pid == id){
-            int* children = find_children(line);
-            int parent = find_parent(line);
-            int * siblings = find_siblings(line);
+            find_children(line, my_node);
+            find_parent(line, my_node);
+            find_siblings(line, my_node);
             my_node->id = id;
-            my_node->parent = parent;
-            my_node->children = children;
-            my_node->siblings = siblings;
-            my_node->children_length = arr_len(children);
-            my_node->siblings_length = arr_len(siblings);
-
         }
     }
 
