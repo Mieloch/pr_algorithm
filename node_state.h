@@ -10,6 +10,7 @@ typedef struct{
     int wait_for_acceptance;
     fifo* resource_request_fifo;
     fifo* acceptance_request_fifo;
+    int using_resource;
 }node_state;
 
 #endif

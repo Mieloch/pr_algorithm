@@ -144,6 +144,8 @@ node_state* init_node(int node_id){
     node_state* my_node_state = malloc(sizeof(node_state));
     my_node_state->node_data=my_node;
     my_node_state->wait_for_acceptance = 0;
+    my_node_state->sent_resource_request = 0;
+    my_node_state->using_resource = 0;
     my_node_state->resource_owner=my_node->parent;
     my_node_state->resource_request_fifo = malloc(sizeof(fifo));
     my_node_state->resource_request_fifo->start = 0;
