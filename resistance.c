@@ -67,6 +67,8 @@ void* resource_assign_listener(void* t){
 	while(1){
 		MPI_Recv(&number, 1, MPI_INT, MPI_ANY_SOURCE, RESOURCE_ASSIGN_TAG, MPI_COMM_WORLD, &status); 
 		pthread_mutex_lock(&sent_resource_mutex);
+		printf("Process[%d] before pop\n", my_node_state->node_data->id);
+		print_fifo(my_node_state->resource_request_fifo);
 		int first_in_queue =  pop(my_node_state->resource_request_fifo);
 		if(first_in_queue == my_node_state->node_data->id) {
 			my_node_state->resource_owner = my_node_state->node_data->id;
@@ -108,10 +110,14 @@ void* resource_request_listener(void* t){ // nasluchiwanie na prosby o zasob
 			else {
 				printf("[RESOURCE_REQUEST] Process[%d] locked resource, added process[%d] to his request fifo\n",my_node_state->node_data->id, status.MPI_SOURCE);
 				put(my_node_state->resource_request_fifo, status.MPI_SOURCE);
+				printf("Process[%d] after put\n", my_node_state->node_data->id);
+				print_fifo(my_node_state->resource_request_fifo);
 			}
 		} else {
 			printf("[RESOURCE_REQUEST] Process[%d] added process[%d] to his request fifo\n",my_node_state->node_data->id, status.MPI_SOURCE);
 			put(my_node_state->resource_request_fifo, status.MPI_SOURCE);
+			printf("Process[%d] after put\n", my_node_state->node_data->id);
+			print_fifo(my_node_state->resource_request_fifo);
 			if(my_node_state->sent_resource_request == 0) {
 				printf("[RESOURE_REQUEST] Process[%d] pass resource request to process[%d]\n", my_node_state->node_data->id, my_node_state->resource_owner);
 	   			MPI_Send(&number, 1, MPI_INT, my_node_state->resource_owner, RESOURCE_REQUEST_TAG, MPI_COMM_WORLD);   	
@@ -135,6 +141,8 @@ void request_for_resource() {
 	}
 	else {
 		put(my_node_state->resource_request_fifo, my_node_state->node_data->id);
+		printf("Process[%d] after put\n", my_node_state->node_data->id);
+		print_fifo(my_node_state->resource_request_fifo);
 		if(my_node_state->sent_resource_request == 0) {
 			printf("[RESOURCE_REQUEST] process[%d] ask process[%d] for resource\n", my_node_state->node_data->id, my_node_state->resource_owner);
 			int number = 1;
@@ -282,6 +290,8 @@ void organize_meeting(){
 	int first_in_queue;
 	pthread_mutex_lock(&sent_resource_mutex);
 	my_node_state->using_resource = 0;
+	printf("Process[%d] befor pop\n", my_node_state->node_data->id);
+	print_fifo(my_node_state->resource_request_fifo);
 	if(first_in_queue = pop(my_node_state->resource_request_fifo) != -1){
 		printf("[RESOURE_ASSIGN] Process[%d] surrended resource to process[%d]\n", my_node_state->node_data->id, first_in_queue);
    		MPI_Send(&number, 1, MPI_INT, first_in_queue, RESOURCE_ASSIGN_TAG, MPI_COMM_WORLD);

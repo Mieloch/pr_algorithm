@@ -48,6 +48,7 @@ void print_fifo(fifo* queue){
 			i = (i +1)%10;
 			printf("%d, ", elem);
 	}
+	printf("\n");
 	// printf("fifo pop start = %d\n", queue->start);
 }
 // int main(){

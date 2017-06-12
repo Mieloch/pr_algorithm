@@ -9,5 +9,6 @@ typedef struct{
 int put(fifo* queue, int elem);
 int pop(fifo* queue);
 int fifo_is_empty(fifo* queue);
+void print_fifo(fifo *queue);
 
 #endif
