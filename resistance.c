@@ -127,18 +127,14 @@ void request_for_resource() {
 	pthread_mutex_lock(&sent_resource_mutex);
 	if(my_node_state->resource_owner == my_node_state->node_data->id){
 		int is_empty;
-		pthread_mutex_lock(&resource_fifo_mutex);
 		is_empty = fifo_is_empty(my_node_state->resource_request_fifo);
-		pthread_mutex_unlock(&resource_fifo_mutex);
 		if(is_empty == 1) {
 			my_node_state->using_resource = 1;
 			my_node_state->sent_resource_request = 0;
 		}
 	}
 	else {
-		pthread_mutex_lock(&resource_fifo_mutex);
 		put(my_node_state->resource_request_fifo, my_node_state->node_data->id);
-		pthread_mutex_unlock(&resource_fifo_mutex);
 		if(my_node_state->sent_resource_request == 0) {
 			printf("[RESOURCE_REQUEST] process[%d] ask process[%d] for resource\n", my_node_state->node_data->id, my_node_state->resource_owner);
 			int number = 1;
