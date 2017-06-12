@@ -79,11 +79,12 @@ void* resource_assign_listener(void* t){
 			printf("[RESOURE_ASSIGN] Process[%d] receive resource assign from process[%d] and pass it to process[%d]\n", my_node_state->node_data->id,status.MPI_SOURCE, first_in_queue);
    			MPI_Send(&number, 1, MPI_INT, first_in_queue, RESOURCE_ASSIGN_TAG, MPI_COMM_WORLD);   	
 			my_node_state->resource_owner = first_in_queue;
+			my_node_state->sent_resource_request = 0;
 			if(fifo_is_empty(my_node_state->resource_request_fifo) == 0){
 				printf("[RESOURE_REQUEST] Process[%d] pass resource request to process[%d]\n", my_node_state->node_data->id, my_node_state->resource_owner);
    				MPI_Send(&number, 1, MPI_INT, my_node_state->resource_owner, RESOURCE_REQUEST_TAG, MPI_COMM_WORLD);  	
+				my_node_state->sent_resource_request = 1;
 			}
-			my_node_state->sent_resource_request = 1;
 		}
 		pthread_mutex_unlock(&sent_resource_mutex);
 	}
@@ -233,11 +234,8 @@ void wait_for_acceptor_acceptance(){
 
 
 void wait_for_all_meeting_ack(){
-		node* my_node = my_node_state -> node_data;
-	if(my_node->siblings_length == 0){
-		printf("[ORGANIZE_MEETING] Process[%d] cant organize meeting alone\n", my_node->id);
-		return;
-	}
+	node* my_node = my_node_state -> node_data;
+	
 	int i;
 	int number = -1;
 	int transfer_listener_id  = create_listener(meeting_acc_listener);
@@ -287,6 +285,7 @@ void organize_meeting(){
 	// release
 	int first_in_queue;
 	pthread_mutex_lock(&sent_resource_mutex);
+	my_node_state->using_resource = 0;
 	if(first_in_queue = pop(my_node_state->resource_request_fifo) != -1){
 		printf("[RESOURE_ASSIGN] Process[%d] surrended resource to process[%d]\n", my_node_state->node_data->id, first_in_queue);
    		MPI_Send(&number, 1, MPI_INT, first_in_queue, RESOURCE_ASSIGN_TAG, MPI_COMM_WORLD);
@@ -304,6 +303,10 @@ void organize_meeting(){
 
 void find_meeting(){
 	node* my_node = my_node_state -> node_data;
+	if(my_node->siblings_length == 0){
+		printf("[ORGANIZE_MEETING] Process[%d] cant organize meeting alone\n", my_node->id);
+		return;
+	}
 	int number = -1;
 	int i;
 	wait_for_all_meeting_ack();
@@ -373,12 +376,17 @@ int main(int argc, char** argv) {
 	sleep(rand_1_to_bound(5)); //just to pretty printing print
 
 	int k = 0;
-	while(k<1){
-		if(world_rank == 4 || world_rank == 5 || world_rank == 6 || world_rank == 12 || world_rank == 11 || world_rank == 10){
+	while(k < 10){
+		//if(world_rank == 4 || world_rank == 5 || world_rank == 6 || world_rank == 12 || world_rank == 11 || world_rank == 10){
+		if(world_rank != 0){
 			find_meeting();
 		}
+		//}
 		sleep(rand_1_to_bound(5));
 		k++;
+		if(world_rank == 4 || world_rank == 7 || world_rank == 10 || world_rank == 1){
+			printf("\n YEAH! MEETING %d DONE! (process[%d])\n\n", k, world_rank);
+		}
 	}
 	
 
